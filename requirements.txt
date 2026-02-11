@@ -1,0 +1,16 @@
+# ============================================
+# DocVault - Minimal Requirements
+# ============================================
+# Installation: pip install -r requirements.txt
+# ============================================
+
+# Configuration and Environment Variables
+# --------------------------------------------
+# Using >= for better compatibility
+pydantic>=2.6.0              # Type-safe data validation and configuration
+pydantic-settings>=2.2.0     # Settings management from files and env vars
+python-dotenv>=1.0.0         # Load environment variables from .env
+
+# Basic Utilities
+# --------------------------------------------
+PyYAML>=6.0                  # Read YAML configuration files
