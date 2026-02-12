@@ -44,15 +44,24 @@ Switch providers by changing a single environment variable — no code changes r
 - [x] Installation verification script
 - [x] Comprehensive documentation (README, AGENTS.md)
 
-**Next:** Milestone 2 — Local Embeddings with sentence-transformers
+**Milestone 2: Local Embeddings** ✅ **COMPLETED**
+
+- [x] EmbeddingService with sentence-transformers
+- [x] Generate embeddings (single and batch)
+- [x] Multilingual support (English + Spanish)
+- [x] Cosine similarity for semantic search
+- [x] Unit tests with meaningful assertions
+- [x] Interactive verification script
+
+**Next:** Milestone 3 — Vector Database (Qdrant)
 
 ## 🗺️ Roadmap
 
 | Milestone | Status | Focus |
 |-----------|--------|-------|
 | **M1: Foundation** | ✅ Done | Project structure + Pydantic config |
-| **M2: Embeddings** | 🚧 Next | Local sentence-transformers integration |
-| **M3: Vector DB** | ⏸️ Pending | Qdrant setup and connection |
+| **M2: Embeddings** | ✅ Done | Local sentence-transformers integration |
+| **M3: Vector DB** | 🚧 Next | Qdrant setup and connection |
 | **M4: Parsers** | ⏸️ Pending | PDF, HTML, Markdown document parsers |
 | **M5: Ingestion** | ⏸️ Pending | Document chunking and indexing pipeline |
 | **M6: Flexible LLM** | ⏸️ Pending | Multi-provider LLM abstraction layer |
@@ -272,6 +281,6 @@ Internal project - Enterprise use
 
 ---
 
-**Status:** Milestone 1 completed ✅ — Ready for Milestone 2 (Embeddings)
+**Status:** Milestone 2 completed ✅ — Ready for Milestone 3 (Vector Database)
 
-**Last Updated:** 2025-02-11
+**Last Updated:** 2026-02-11

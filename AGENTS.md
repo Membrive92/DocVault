@@ -180,8 +180,8 @@ Plus:
 | Milestone | Status | Key Deliverable | Verification |
 |-----------|--------|-----------------|--------------|
 | **M1: Foundation** | ✅ Done | Structure + Config with Pydantic | `python test_setup.py` |
-| **M2: Embeddings** | 🚧 Next | `src/embeddings/embedding_service.py` | `python scripts/test_embedding.py` |
-| **M3: Vector DB** | ⏸️ | `src/database/qdrant_client.py` + Docker | `python scripts/test_vector_search.py` |
+| **M2: Embeddings** | ✅ Done | `src/embeddings/embedding_service.py` | `python scripts/test_embedding.py` |
+| **M3: Vector DB** | 🚧 Next | `src/database/qdrant_client.py` + Docker | `python scripts/test_vector_search.py` |
 | **M4: Parsers** | ⏸️ | `src/parsers/` (PDF/HTML/Markdown) | `python scripts/test_parsers.py sample.pdf` |
 | **M5: Ingestion** | ⏸️ | `src/ingestion/document_processor.py` | `python scripts/ingest_documents.py data/documents/` |
 | **M6: Flexible LLM** | ⏸️ | `src/llm/providers/` + Factory | `python scripts/test_llm.py` |
@@ -407,7 +407,7 @@ When the agent makes a new recurring error (2+ times):
 
 # ⚠️ Important Context for Agents
 
-- **Not a git repo yet.** If initialized, use existing `.gitignore`.
+- **Git repository initialized.** Repo: https://github.com/Membrive92/DocVault.git
 - **Windows environment.** Always use `pathlib.Path`. Never assume Unix path separators.
 - **Python 3.10+ required** by Pydantic 2.x and modern type hints.
 - **Testing:** `pytest` for automated tests in `tests/`. Scripts in `scripts/` for interactive manual verification.
@@ -425,5 +425,5 @@ When the agent makes a new recurring error (2+ times):
 
 ---
 
-**Last update:** 2025-02-11
-**Status:** Milestone 1 completed — Ready for M2
+**Last update:** 2026-02-11
+**Status:** Milestone 2 completed — Ready for M3 (Vector Database)
