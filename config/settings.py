@@ -62,6 +62,24 @@ class Settings(BaseSettings):
     )
 
     # ==========================================
+    # Qdrant Vector Database
+    # ==========================================
+    qdrant_collection_name: str = Field(
+        default="docvault_documents",
+        description="Qdrant collection name"
+    )
+
+    qdrant_storage_path: Path = Field(
+        default=Path("data/qdrant_storage"),
+        description="Qdrant persistent storage path"
+    )
+
+    qdrant_in_memory: bool = Field(
+        default=False,
+        description="Use in-memory storage (no persistence, for testing)"
+    )
+
+    # ==========================================
     # Pydantic Settings Configuration
     # ==========================================
     model_config = SettingsConfigDict(
@@ -95,7 +113,8 @@ class Settings(BaseSettings):
         """
         directories = [
             self.get_full_path(self.data_dir),
-            self.get_full_path(self.documents_dir)
+            self.get_full_path(self.documents_dir),
+            self.get_full_path(self.qdrant_storage_path),
         ]
 
         for directory in directories:
@@ -115,6 +134,9 @@ class Settings(BaseSettings):
         print(f"Project Root:     {self.project_root}")
         print(f"Data Dir:         {self.get_full_path(self.data_dir)}")
         print(f"Documents Dir:    {self.get_full_path(self.documents_dir)}")
+        print(f"Qdrant Collection:{self.qdrant_collection_name}")
+        print(f"Qdrant Storage:   {self.get_full_path(self.qdrant_storage_path)}")
+        print(f"Qdrant In-Memory: {self.qdrant_in_memory}")
         print("=" * 50 + "\n")
 
 
