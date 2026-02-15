@@ -8,11 +8,13 @@ and Markdown documents. Use ParserFactory for automatic format detection.
 from __future__ import annotations
 
 from .base_parser import DocumentParser
+from .html_parser import HTMLParser
 from .models import ParsedDocument
 from .pdf_parser import PDFParser
 
 __all__ = [
     "DocumentParser",
+    "HTMLParser",
     "ParsedDocument",
     "PDFParser",
 ]
