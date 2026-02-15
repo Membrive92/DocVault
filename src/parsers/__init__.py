@@ -9,8 +9,10 @@ from __future__ import annotations
 
 from .base_parser import DocumentParser
 from .models import ParsedDocument
+from .pdf_parser import PDFParser
 
 __all__ = [
     "DocumentParser",
     "ParsedDocument",
+    "PDFParser",
 ]
