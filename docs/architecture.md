@@ -1,7 +1,7 @@
 # DocVault - System Architecture
 
-> **Last Updated:** 2026-02-11
-> **Status:** M2 Completed - Embeddings Working
+> **Last Updated:** 2026-02-12
+> **Status:** M4 Completed - Document Parsers Working
 
 ---
 
@@ -182,7 +182,7 @@ LLMFactory.create(provider_type) → LLMProvider
 
 ---
 
-### 4. Vector Search Layer (M3)
+### 4. Vector Search Layer (M3) ✅
 
 **Purpose:** Fast semantic similarity search
 
@@ -206,7 +206,7 @@ Query Text → Embedding (384 dims) → Qdrant Search (Top-K) → Relevant Chunk
 
 ---
 
-### 5. Embedding Layer (M2) ✅ **COMPLETED**
+### 5. Embedding Layer (M2) ✅
 
 **Purpose:** Convert text to vector representations
 
@@ -247,15 +247,19 @@ embeddings = service.generate_batch_embeddings(
 
 **Components:**
 
-#### M4: Parsers
-- **PDF Parser:** Extract text from PDFs (pypdf/pymupdf)
-- **HTML Parser:** Extract content from web pages (BeautifulSoup4)
-- **Markdown Parser:** Parse Markdown documents
+#### M4: Parsers ✅
+- **PDF Parser:** Extract text from PDFs (pypdf) — page-by-page extraction with metadata
+- **HTML Parser:** Extract content from web pages (BeautifulSoup4 + lxml) — boilerplate removal
+- **Markdown Parser:** Parse Markdown documents (python-frontmatter) — YAML frontmatter support
+- **Parser Factory:** Automatic format detection by file extension
+- **ParsedDocument:** Standard output dataclass for all parsers
 
 **Features:**
 - Preserve document structure (headings, sections)
-- Extract metadata (title, author, date)
+- Extract metadata (title, author, date, page count)
 - Handle special characters and encodings
+- Remove HTML boilerplate (scripts, nav, sidebar, ads)
+- YAML frontmatter extraction for Markdown
 
 #### M5: Ingestion Pipeline
 - **Text Chunking:** Split documents into ~500 token chunks
@@ -517,6 +521,9 @@ response = llm.generate(prompt, context)
 | Config | Pydantic | 2.x | Type-safe configuration |
 | Embeddings | sentence-transformers | 5.2+ | Local embedding generation |
 | Vector DB | Qdrant | Latest | Vector similarity search |
+| PDF Parsing | pypdf | 6.7+ | PDF text and metadata extraction |
+| HTML Parsing | BeautifulSoup4 + lxml | 4.14+ | HTML content extraction |
+| MD Parsing | python-frontmatter | 1.1+ | Markdown YAML frontmatter |
 | LLM (local) | Ollama | Latest | Local LLM inference |
 | API | FastAPI | Latest | REST API endpoints |
 | Testing | pytest | Latest | Unit and integration tests |
@@ -605,15 +612,15 @@ Capacity: ~1M docs, ~1000 req/s
 
 ## Next Steps
 
-**Current Status:** Milestone 2 completed (Embeddings)
+**Current Status:** Milestone 4 completed (Document Parsers)
 
-**Next Milestone:** M3 - Vector Database (Qdrant)
+**Next Milestone:** M5 - Ingestion Pipeline (Chunking + Indexing)
 
 See individual milestone documents for detailed implementation plans:
 - [Milestone 1: Foundation](milestone-01-foundation.md) ✅
 - [Milestone 2: Embeddings](milestone-02-embeddings.md) ✅
-- [Milestone 3: Vector DB](milestone-03-vector-db.md) 🚧
-- [Milestone 4: Parsers](milestone-04-parsers.md)
-- [Milestone 5: Ingestion](milestone-05-ingestion.md)
+- [Milestone 3: Vector DB](milestone-03-vector-db.md) ✅
+- [Milestone 4: Parsers](milestone-04-parsers.md) ✅
+- [Milestone 5: Ingestion](milestone-05-ingestion.md) 🚧
 - [Milestone 6: Flexible LLM](milestone-06-llm.md)
 - [Milestone 7: Complete RAG](milestone-07-rag.md)

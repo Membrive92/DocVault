@@ -31,16 +31,12 @@ Development milestones are implemented sequentially, each building on the previo
    - L2 normalization optimization
    - Comprehensive testing strategy
 
-#### 🚧 Next
-
 3. **[milestone-03-vector-db.md](milestone-03-vector-db.md)** - Vector Database (Qdrant)
    - Qdrant integration for vector storage
    - HNSW index configuration
    - Abstract database interface
    - In-memory and persistent modes
    - Similarity search implementation
-
-#### ⏸️ Pending
 
 4. **[milestone-04-parsers.md](milestone-04-parsers.md)** - Document Parsers
    - PDF parser (pypdf)
@@ -49,12 +45,16 @@ Development milestones are implemented sequentially, each building on the previo
    - Parser factory pattern
    - Metadata extraction
 
+#### 🚧 Next
+
 5. **[milestone-05-ingestion.md](milestone-05-ingestion.md)** - Document Ingestion Pipeline
    - Text chunking strategy (~500 tokens with 50 token overlap)
    - Batch embedding generation
    - State management for incremental indexing
    - End-to-end ingestion pipeline
    - CLI interface
+
+#### ⏸️ Pending
 
 6. **[milestone-06-llm.md](milestone-06-llm.md)** - Flexible LLM Layer
    - Strategy Pattern for provider abstraction
@@ -150,6 +150,6 @@ When updating documentation:
 
 ---
 
-**Last Updated:** 2026-02-11
-**Current Milestone:** M2 (Embeddings) - ✅ Complete
-**Next Milestone:** M3 (Vector Database)
+**Last Updated:** 2026-02-12
+**Current Milestone:** M4 (Parsers) - ✅ Complete
+**Next Milestone:** M5 (Ingestion Pipeline)

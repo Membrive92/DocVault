@@ -63,7 +63,17 @@ Switch providers by changing a single environment variable — no code changes r
 - [x] 19 unit tests with meaningful assertions
 - [x] Interactive verification script with real M2+M3 integration
 
-**Next:** Milestone 4 — Document Parsers (PDF, HTML, Markdown)
+**Milestone 4: Document Parsers** ✅ **COMPLETED**
+
+- [x] Abstract DocumentParser interface (Strategy pattern)
+- [x] PDFParser with pypdf (text + metadata extraction)
+- [x] HTMLParser with BeautifulSoup (boilerplate removal)
+- [x] MarkdownParser with python-frontmatter (YAML frontmatter)
+- [x] ParserFactory for automatic format detection
+- [x] ParsedDocument dataclass as standard output model
+- [x] 41 unit tests + 7 integration tests
+
+**Next:** Milestone 5 — Ingestion Pipeline (chunking + indexing)
 
 ## 🗺️ Roadmap
 
@@ -72,8 +82,8 @@ Switch providers by changing a single environment variable — no code changes r
 | **M1: Foundation** | ✅ Done | Project structure + Pydantic config |
 | **M2: Embeddings** | ✅ Done | Local sentence-transformers integration |
 | **M3: Vector DB** | ✅ Done | Qdrant vector database integration |
-| **M4: Parsers** | 🚧 Next | PDF, HTML, Markdown document parsers |
-| **M5: Ingestion** | ⏸️ Pending | Document chunking and indexing pipeline |
+| **M4: Parsers** | ✅ Done | PDF, HTML, Markdown document parsers |
+| **M5: Ingestion** | 🚧 Next | Document chunking and indexing pipeline |
 | **M6: Flexible LLM** | ⏸️ Pending | Multi-provider LLM abstraction layer |
 | **M7: Complete RAG** | ⏸️ Pending | End-to-end RAG pipeline + API + CLI |
 
@@ -216,15 +226,17 @@ DOCUMENTS_DIR=data/documents
 
 ## 🛠️ Technology Stack
 
-### Current (M1-M3)
+### Current (M1-M4)
 - **Python 3.10+** — Modern type hints and async support
 - **Pydantic 2.x** — Type-safe configuration management
 - **pathlib** — Cross-platform path handling
 - **sentence-transformers** — Local multilingual embeddings (M2)
 - **Qdrant** — Vector database for similarity search (M3)
+- **pypdf** — PDF text and metadata extraction (M4)
+- **BeautifulSoup4 + lxml** — HTML content extraction with boilerplate removal (M4)
+- **python-frontmatter** — Markdown YAML frontmatter parsing (M4)
 
-### Planned (M4-M7)
-- **pypdf / beautifulsoup4** — Document parsing (M4)
+### Planned (M5-M7)
 - **Ollama / OpenAI / Anthropic** — LLM providers (M6)
 - **FastAPI** — REST API endpoints (M7)
 
@@ -265,6 +277,7 @@ pytest tests/integration/
 # Run tests for a specific module
 pytest tests/ -k embeddings
 pytest tests/ -k vector
+pytest tests/ -k parsers
 
 # Run with coverage
 pytest --cov=src
@@ -299,6 +312,6 @@ Internal project - Enterprise use
 
 ---
 
-**Status:** Milestone 3 completed ✅ — Ready for Milestone 4 (Document Parsers)
+**Status:** Milestone 4 completed ✅ — Ready for Milestone 5 (Ingestion Pipeline)
 
 **Last Updated:** 2026-02-12

@@ -1,6 +1,6 @@
 # Milestone 4: Document Parsers
 
-**Status:** ⏸️ Pending
+**Status:** ✅ Completed
 **Dependencies:** M1 (Foundation)
 **Goal:** Extract clean text from PDF, HTML, and Markdown documents
 
@@ -13,7 +13,8 @@ This milestone implements parsers for the three primary documentation formats:
 - **HTML** - Web documentation, API references, knowledge bases
 - **Markdown** - README files, wikis, developer docs
 
-Each parser must extract clean, structured text suitable for embedding generation.
+Each parser extracts clean, structured text suitable for embedding generation,
+returning a standardized `ParsedDocument` model.
 
 ## Why These Formats?
 
@@ -29,30 +30,37 @@ Each parser must extract clean, structured text suitable for embedding generatio
 
 ### Markdown
 - **Use case**: GitHub README, wikis, developer documentation
-- **Challenge**: Simple format, minimal parsing needed
-- **Library**: Standard library + simple regex
+- **Challenge**: YAML frontmatter, embedded HTML
+- **Library**: `python-frontmatter` + regex
 
 ## Architecture
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│              DocumentParser (ABC)                      │
+│              DocumentParser (ABC)                       │
 │  - parse(file_path) -> ParsedDocument                  │
-│  - extract_metadata(file_path) -> dict                 │
+│  - can_parse(file_path) -> bool                        │
+│  - _validate_file(file_path) [concrete]                │
 └────────────────────────────────────────────────────────┘
                          ▲
                          │ implements
         ┌────────────────┼────────────────┐
         │                │                │
 ┌───────────────┐ ┌─────────────┐ ┌──────────────┐
-│   PDFParser   │ │ HTMLParser  │ │ MDParser     │
+│   PDFParser   │ │ HTMLParser  │ │ MarkdownParser│
 │               │ │             │ │              │
-│ - pypdf       │ │ - bs4       │ │ - stdlib     │
-│ - extract     │ │ - clean     │ │ - frontmatter│
-│   text        │ │   boiler    │ │   extraction │
-│ - extract     │ │   plate     │ │              │
-│   metadata    │ │             │ │              │
+│ - pypdf       │ │ - bs4       │ │ - frontmatter│
+│ - text +      │ │ - clean     │ │ - yaml meta  │
+│   metadata    │ │   boiler    │ │ - heading    │
+│ - page count  │ │   plate     │ │   extraction │
 └───────────────┘ └─────────────┘ └──────────────┘
+                         │
+                         │ uses
+                         ▼
+              ┌────────────────────┐
+              │   ParserFactory    │
+              │  (auto-detection)  │
+              └────────────────────┘
 ```
 
 ### ParsedDocument Data Model
@@ -60,108 +68,14 @@ Each parser must extract clean, structured text suitable for embedding generatio
 ```python
 @dataclass
 class ParsedDocument:
-    """Result of parsing a document."""
-
-    # Content
-    text: str                    # Extracted clean text
-
-    # Metadata
-    title: Optional[str]         # Document title
-    source_path: str             # Original file path
-    format: str                  # "pdf", "html", or "markdown"
-
-    # Optional metadata
-    author: Optional[str] = None
-    created_date: Optional[str] = None
-    language: Optional[str] = None
-    page_count: Optional[int] = None
-
-    # Extraction info
-    extracted_at: str            # ISO timestamp
-    parser_version: str          # Parser version for tracking
-```
-
-## Implementation Plan
-
-### Task 1: Install Parser Dependencies
-
-```bash
-pip install pypdf beautifulsoup4 lxml python-frontmatter
-```
-
-**Why these libraries?**
-- **pypdf**: Pure Python, actively maintained, no system deps
-- **beautifulsoup4**: Industry standard for HTML parsing
-- **lxml**: Fast XML/HTML parser backend
-- **python-frontmatter**: YAML frontmatter in Markdown files
-
-### Task 2: Create Parser Configuration
-
-**File:** `src/parsers/config.py`
-
-```python
-"""
-Configuration for document parsers.
-"""
-
-from __future__ import annotations
-
-# PDF Configuration
-PDF_EXTRACT_IMAGES = False  # Don't extract images (text only)
-PDF_PASSWORD = None         # Default no password
-
-# HTML Configuration
-HTML_REMOVE_TAGS = [
-    "script", "style", "nav", "header", "footer",
-    "aside", "form", "iframe", "noscript"
-]
-HTML_REMOVE_CLASSES = [
-    "sidebar", "menu", "navigation", "ad", "advertisement",
-    "cookie-notice", "social-share", "comments"
-]
-HTML_KEEP_LINKS = True      # Preserve link text
-HTML_MIN_TEXT_LENGTH = 10   # Ignore elements with < 10 chars
-
-# Markdown Configuration
-MD_PARSE_FRONTMATTER = True  # Extract YAML frontmatter
-MD_PRESERVE_CODE_BLOCKS = True  # Keep code blocks
-MD_REMOVE_HTML_TAGS = True   # Strip HTML from Markdown
-
-# General
-DEFAULT_LANGUAGE = "en"
-MAX_TEXT_LENGTH = 10_000_000  # 10MB max per document
-```
-
-### Task 3: Create ParsedDocument Model
-
-**File:** `src/parsers/models.py`
-
-```python
-"""
-Data models for parsed documents.
-"""
-
-from __future__ import annotations
-
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional
-
-
-@dataclass
-class ParsedDocument:
-    """
-    Represents a parsed document with extracted text and metadata.
-
-    This is the standard format returned by all parsers.
-    """
+    """Standard output for all parsers."""
 
     # Required fields
-    text: str
-    source_path: str
-    format: str  # "pdf", "html", "markdown"
-    extracted_at: str
-    parser_version: str
+    text: str                    # Extracted clean text
+    source_path: str             # Original file path
+    format: str                  # "pdf", "html", or "markdown"
+    extracted_at: str            # ISO timestamp
+    parser_version: str          # Parser version for tracking
 
     # Optional metadata
     title: Optional[str] = None
@@ -170,530 +84,175 @@ class ParsedDocument:
     language: Optional[str] = None
     page_count: Optional[int] = None
 
-    def __post_init__(self) -> None:
-        """Validate document after creation."""
-        if not self.text or not self.text.strip():
-            raise ValueError("Parsed document cannot have empty text")
-
-        if self.format not in ("pdf", "html", "markdown"):
-            raise ValueError(f"Invalid format: {self.format}")
-
-    @property
-    def word_count(self) -> int:
-        """Calculate approximate word count."""
-        return len(self.text.split())
-
-    @property
-    def char_count(self) -> int:
-        """Get character count."""
-        return len(self.text)
+    # Properties
+    word_count: int              # Calculated from text
+    char_count: int              # Calculated from text
 ```
 
-### Task 4: Abstract Parser Interface
+Validation in `__post_init__`:
+- Text cannot be empty or whitespace-only
+- Format must be one of: `pdf`, `html`, `markdown`
 
-**File:** `src/parsers/base_parser.py`
+## Implementation Details
+
+### Parser Configuration (`src/parsers/config.py`)
 
 ```python
-"""
-Abstract base class for document parsers.
-"""
+# PDF
+PDF_EXTRACT_IMAGES = False
+PDF_PASSWORD = None
 
-from __future__ import annotations
+# HTML — tags and classes to remove (boilerplate)
+HTML_REMOVE_TAGS = ["script", "style", "nav", "header", "footer", "aside", "form", "iframe", "noscript"]
+HTML_REMOVE_CLASSES = ["sidebar", "menu", "navigation", "ad", "advertisement", "cookie-notice", "social-share", "comments"]
+HTML_MIN_TEXT_LENGTH = 10
 
-from abc import ABC, abstractmethod
-from pathlib import Path
+# Markdown
+MD_PARSE_FRONTMATTER = True
+MD_REMOVE_HTML_TAGS = True
 
-from .models import ParsedDocument
+# General
+MAX_TEXT_LENGTH = 10_000_000  # 10MB max per document
+PARSER_VERSION = "1.0.0"
+```
 
+### Abstract Interface (`src/parsers/base_parser.py`)
 
+Strategy pattern interface — same approach as `VectorDatabase` in M3:
+
+```python
 class DocumentParser(ABC):
-    """
-    Abstract base class for all document parsers.
-
-    Each parser must implement parse() to extract text and metadata
-    from a specific document format.
-    """
-
-    def __init__(self) -> None:
-        """Initialize parser."""
-        self.parser_version = "1.0.0"
-
     @abstractmethod
-    def parse(self, file_path: str | Path) -> ParsedDocument:
-        """
-        Parse a document and extract text + metadata.
-
-        Args:
-            file_path: Path to the document file
-
-        Returns:
-            ParsedDocument with extracted content and metadata
-
-        Raises:
-            FileNotFoundError: If file doesn't exist
-            ValueError: If file format is invalid
-            RuntimeError: If parsing fails
-        """
-        pass
-
+    def parse(self, file_path: str | Path) -> ParsedDocument: ...
     @abstractmethod
-    def can_parse(self, file_path: str | Path) -> bool:
-        """
-        Check if this parser can handle the given file.
-
-        Args:
-            file_path: Path to check
-
-        Returns:
-            True if this parser supports the file format
-        """
-        pass
-
-    def _validate_file(self, file_path: Path) -> None:
-        """Validate that file exists and is readable."""
-        if not file_path.exists():
-            raise FileNotFoundError(f"File not found: {file_path}")
-
-        if not file_path.is_file():
-            raise ValueError(f"Not a file: {file_path}")
+    def can_parse(self, file_path: str | Path) -> bool: ...
+    def _validate_file(self, file_path: Path) -> None: ...  # concrete helper
 ```
 
-### Task 5: Implement PDF Parser
+### PDFParser (`src/parsers/pdf_parser.py`)
 
-**File:** `src/parsers/pdf_parser.py`
+- Extracts text page by page with `PdfReader`
+- Joins pages with `\n\n`
+- Extracts metadata: `/Title`, `/Author`, `/CreationDate`
+- Raises `RuntimeError` for encrypted PDFs
+- Raises `ValueError` if no text extracted (image-only PDFs)
+
+### HTMLParser (`src/parsers/html_parser.py`)
+
+- Parses with `BeautifulSoup` using `lxml` backend
+- Removes unwanted tags (`script`, `style`, `nav`, etc.)
+- Removes elements with boilerplate classes (`sidebar`, `menu`, etc.)
+- Finds main content: `<main>` > `<article>` > `div.content` > `<body>`
+- Filters lines shorter than 10 chars (noise)
+- Extracts `<title>` tag
+
+### MarkdownParser (`src/parsers/markdown_parser.py`)
+
+- Parses YAML frontmatter with `python-frontmatter` (title, author)
+- Strips embedded HTML tags with regex
+- Falls back to first `# Heading` as title if no frontmatter
+
+### ParserFactory (`src/parsers/parser_factory.py`)
+
+- Registers all three parsers
+- Selects parser by file extension: `.pdf`, `.html`/`.htm`, `.md`/`.markdown`
+- `get_parser()` returns parser or `None`
+- `parse()` convenience method — select + parse in one call
+- Raises `ValueError` for unsupported formats
+
+## Usage Examples
+
+### Direct parser usage
 
 ```python
-"""
-PDF document parser using pypdf.
-"""
+from src.parsers import PDFParser, HTMLParser, MarkdownParser
 
-from __future__ import annotations
-
-import logging
-from datetime import datetime
-from pathlib import Path
-
-from pypdf import PdfReader
-
-from .base_parser import DocumentParser
-from .config import PDF_EXTRACT_IMAGES, PDF_PASSWORD, MAX_TEXT_LENGTH
-from .models import ParsedDocument
-
-
-logger = logging.getLogger(__name__)
-
-
-class PDFParser(DocumentParser):
-    """
-    Parser for PDF documents.
-
-    Uses pypdf to extract text and metadata from PDF files.
-    """
-
-    def can_parse(self, file_path: str | Path) -> bool:
-        """Check if file is a PDF."""
-        path = Path(file_path)
-        return path.suffix.lower() == ".pdf"
-
-    def parse(self, file_path: str | Path) -> ParsedDocument:
-        """
-        Parse a PDF file and extract text + metadata.
-
-        Args:
-            file_path: Path to PDF file
-
-        Returns:
-            ParsedDocument with extracted content
-
-        Raises:
-            FileNotFoundError: If PDF doesn't exist
-            RuntimeError: If PDF is encrypted or corrupted
-        """
-        path = Path(file_path)
-        self._validate_file(path)
-
-        logger.info(f"Parsing PDF: {path.name}")
-
-        try:
-            reader = PdfReader(path, password=PDF_PASSWORD)
-
-            # Check if encrypted
-            if reader.is_encrypted:
-                raise RuntimeError(f"PDF is encrypted: {path}")
-
-            # Extract text from all pages
-            text_parts = []
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    text_parts.append(text)
-
-            full_text = "\n\n".join(text_parts).strip()
-
-            # Validate text length
-            if len(full_text) > MAX_TEXT_LENGTH:
-                raise ValueError(f"PDF text exceeds max length: {len(full_text)}")
-
-            if not full_text:
-                logger.warning(f"No text extracted from: {path.name}")
-
-            # Extract metadata
-            metadata = reader.metadata or {}
-
-            return ParsedDocument(
-                text=full_text,
-                source_path=str(path),
-                format="pdf",
-                extracted_at=datetime.utcnow().isoformat(),
-                parser_version=self.parser_version,
-                title=metadata.get("/Title"),
-                author=metadata.get("/Author"),
-                created_date=metadata.get("/CreationDate"),
-                page_count=len(reader.pages),
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to parse PDF {path.name}: {e}")
-            raise RuntimeError(f"PDF parsing failed: {e}") from e
+pdf_parser = PDFParser()
+doc = pdf_parser.parse("docs/manual.pdf")
+print(f"Title: {doc.title}")
+print(f"Pages: {doc.page_count}")
+print(f"Words: {doc.word_count}")
 ```
 
-### Task 6: Implement HTML Parser
-
-**File:** `src/parsers/html_parser.py`
+### Factory usage (recommended)
 
 ```python
-"""
-HTML document parser using BeautifulSoup.
-"""
+from src.parsers import ParserFactory
 
-from __future__ import annotations
+factory = ParserFactory()
 
-import logging
-from datetime import datetime
-from pathlib import Path
+# Auto-detects format by extension
+doc = factory.parse("docs/manual.pdf")
+doc = factory.parse("docs/api.html")
+doc = factory.parse("docs/README.md")
 
-from bs4 import BeautifulSoup
-
-from .base_parser import DocumentParser
-from .config import (
-    HTML_REMOVE_TAGS,
-    HTML_REMOVE_CLASSES,
-    HTML_MIN_TEXT_LENGTH,
-    MAX_TEXT_LENGTH,
-)
-from .models import ParsedDocument
-
-
-logger = logging.getLogger(__name__)
-
-
-class HTMLParser(DocumentParser):
-    """
-    Parser for HTML documents.
-
-    Uses BeautifulSoup to extract main content while removing
-    navigation, ads, and other boilerplate.
-    """
-
-    def can_parse(self, file_path: str | Path) -> bool:
-        """Check if file is HTML."""
-        path = Path(file_path)
-        return path.suffix.lower() in (".html", ".htm")
-
-    def parse(self, file_path: str | Path) -> ParsedDocument:
-        """
-        Parse an HTML file and extract main content.
-
-        Args:
-            file_path: Path to HTML file
-
-        Returns:
-            ParsedDocument with extracted content
-        """
-        path = Path(file_path)
-        self._validate_file(path)
-
-        logger.info(f"Parsing HTML: {path.name}")
-
-        try:
-            # Read HTML
-            with open(path, "r", encoding="utf-8") as f:
-                html_content = f.read()
-
-            # Parse with BeautifulSoup
-            soup = BeautifulSoup(html_content, "lxml")
-
-            # Remove unwanted tags
-            for tag in HTML_REMOVE_TAGS:
-                for element in soup.find_all(tag):
-                    element.decompose()
-
-            # Remove elements with unwanted classes
-            for class_name in HTML_REMOVE_CLASSES:
-                for element in soup.find_all(class_=class_name):
-                    element.decompose()
-
-            # Extract title
-            title_tag = soup.find("title")
-            title = title_tag.get_text().strip() if title_tag else None
-
-            # Try to find main content
-            main_content = (
-                soup.find("main") or
-                soup.find("article") or
-                soup.find("div", class_="content") or
-                soup.body or
-                soup
-            )
-
-            # Extract text
-            text = main_content.get_text(separator="\n", strip=True)
-
-            # Clean up extra whitespace
-            lines = [line.strip() for line in text.split("\n")]
-            lines = [line for line in lines if len(line) >= HTML_MIN_TEXT_LENGTH]
-            full_text = "\n".join(lines)
-
-            if len(full_text) > MAX_TEXT_LENGTH:
-                raise ValueError(f"HTML text exceeds max length: {len(full_text)}")
-
-            return ParsedDocument(
-                text=full_text,
-                source_path=str(path),
-                format="html",
-                extracted_at=datetime.utcnow().isoformat(),
-                parser_version=self.parser_version,
-                title=title,
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to parse HTML {path.name}: {e}")
-            raise RuntimeError(f"HTML parsing failed: {e}") from e
+# Check if format is supported
+parser = factory.get_parser("file.docx")  # Returns None
 ```
 
-### Task 7: Implement Markdown Parser
+## Testing
 
-**File:** `src/parsers/markdown_parser.py`
+### Unit Tests (`tests/unit/test_parsers.py`)
 
-```python
-"""
-Markdown document parser.
-"""
+41 tests covering:
+- ParsedDocument model (8 tests): validation, properties, formats
+- PDFParser (7 tests): can_parse, parse, metadata, errors
+- HTMLParser (8 tests): can_parse, parse, title, script/nav removal, errors
+- MarkdownParser (8 tests): can_parse, parse, frontmatter, heading extraction, HTML removal
+- ParserFactory (10 tests): parser selection, factory parse, unsupported formats
 
-from __future__ import annotations
-
-import logging
-import re
-from datetime import datetime
-from pathlib import Path
-
-import frontmatter
-
-from .base_parser import DocumentParser
-from .config import MD_PARSE_FRONTMATTER, MD_REMOVE_HTML_TAGS, MAX_TEXT_LENGTH
-from .models import ParsedDocument
-
-
-logger = logging.getLogger(__name__)
-
-
-class MarkdownParser(DocumentParser):
-    """
-    Parser for Markdown documents.
-
-    Extracts text and frontmatter metadata from Markdown files.
-    """
-
-    def can_parse(self, file_path: str | Path) -> bool:
-        """Check if file is Markdown."""
-        path = Path(file_path)
-        return path.suffix.lower() in (".md", ".markdown")
-
-    def parse(self, file_path: str | Path) -> ParsedDocument:
-        """
-        Parse a Markdown file.
-
-        Args:
-            file_path: Path to Markdown file
-
-        Returns:
-            ParsedDocument with extracted content
-        """
-        path = Path(file_path)
-        self._validate_file(path)
-
-        logger.info(f"Parsing Markdown: {path.name}")
-
-        try:
-            # Read file
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-
-            # Parse frontmatter if enabled
-            if MD_PARSE_FRONTMATTER:
-                post = frontmatter.loads(content)
-                text = post.content
-                metadata = post.metadata
-                title = metadata.get("title")
-                author = metadata.get("author")
-            else:
-                text = content
-                title = None
-                author = None
-
-            # Remove HTML tags if configured
-            if MD_REMOVE_HTML_TAGS:
-                text = re.sub(r"<[^>]+>", "", text)
-
-            # Clean up
-            text = text.strip()
-
-            if len(text) > MAX_TEXT_LENGTH:
-                raise ValueError(f"Markdown text exceeds max length: {len(text)}")
-
-            # If no frontmatter title, try to extract from first heading
-            if not title:
-                heading_match = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
-                if heading_match:
-                    title = heading_match.group(1).strip()
-
-            return ParsedDocument(
-                text=text,
-                source_path=str(path),
-                format="markdown",
-                extracted_at=datetime.utcnow().isoformat(),
-                parser_version=self.parser_version,
-                title=title,
-                author=author,
-            )
-
-        except Exception as e:
-            logger.error(f"Failed to parse Markdown {path.name}: {e}")
-            raise RuntimeError(f"Markdown parsing failed: {e}") from e
+```bash
+pytest tests/unit/test_parsers.py -v
 ```
 
-### Task 8: Parser Factory
+### Integration Tests (`tests/integration/test_parsers_integration.py`)
 
-**File:** `src/parsers/parser_factory.py`
+7 tests with realistic documents:
+- HTML with full boilerplate (nav, sidebar, scripts, footer)
+- HTML with `div.content` as main area
+- Markdown with complete YAML frontmatter
+- Markdown with embedded HTML
+- PDF with extractable text
+- ParserFactory with all formats
+- ParserFactory rejects unsupported format
 
-```python
-"""
-Factory for selecting the correct parser based on file extension.
-"""
-
-from __future__ import annotations
-
-from pathlib import Path
-from typing import Optional
-
-from .base_parser import DocumentParser
-from .html_parser import HTMLParser
-from .markdown_parser import MarkdownParser
-from .pdf_parser import PDFParser
-
-
-class ParserFactory:
-    """
-    Factory for creating appropriate parser based on file type.
-    """
-
-    def __init__(self) -> None:
-        """Initialize factory with all available parsers."""
-        self.parsers: list[DocumentParser] = [
-            PDFParser(),
-            HTMLParser(),
-            MarkdownParser(),
-        ]
-
-    def get_parser(self, file_path: str | Path) -> Optional[DocumentParser]:
-        """
-        Get appropriate parser for the given file.
-
-        Args:
-            file_path: Path to file
-
-        Returns:
-            Parser instance if format is supported, None otherwise
-        """
-        path = Path(file_path)
-
-        for parser in self.parsers:
-            if parser.can_parse(path):
-                return parser
-
-        return None
-
-    def parse(self, file_path: str | Path) -> ParsedDocument:
-        """
-        Parse a document using the appropriate parser.
-
-        Args:
-            file_path: Path to document
-
-        Returns:
-            ParsedDocument with extracted content
-
-        Raises:
-            ValueError: If file format is not supported
-        """
-        parser = self.get_parser(file_path)
-
-        if parser is None:
-            raise ValueError(f"Unsupported file format: {file_path}")
-
-        return parser.parse(file_path)
+```bash
+pytest tests/integration/test_parsers_integration.py -v
 ```
 
-### Task 9: Unit Tests
+## Verification Criteria
 
-**File:** `tests/test_parsers.py`
-
-Tests for each parser:
-- PDF: Extract text, metadata, handle encrypted PDFs
-- HTML: Remove boilerplate, extract main content
-- Markdown: Parse frontmatter, extract headings
-- Factory: Correct parser selection
-
-### Task 10: Interactive Verification
-
-**File:** `scripts/test_parsers.py`
-
-Create sample documents and verify parsing:
-1. Generate test PDF, HTML, Markdown files
-2. Parse each format
-3. Display extracted text and metadata
-4. Verify accuracy
-
-## Testing Strategy
-
-### Sample Documents
-Create in `data/documents/samples/`:
-- `sample.pdf` - Multi-page technical doc
-- `sample.html` - Documentation page with navigation
-- `sample.md` - README with frontmatter
-
-### Validation
-- Text extraction accuracy > 95%
-- Metadata extraction where available
-- Proper handling of edge cases (empty files, malformed content)
+**M4 is complete when:**
+- [x] pypdf, beautifulsoup4, lxml, python-frontmatter installed
+- [x] DocumentParser ABC defines parse() and can_parse()
+- [x] PDFParser extracts text and metadata from PDFs
+- [x] HTMLParser removes boilerplate and extracts main content
+- [x] MarkdownParser extracts frontmatter and cleans HTML
+- [x] ParserFactory auto-detects format by extension
+- [x] ParsedDocument validates text and format
+- [x] All 41 unit tests pass
+- [x] All 7 integration tests pass
+- [x] Documentation updated (README.md, AGENTS.md)
 
 ## Next Steps (M5)
 
-M5 will use these parsers to build the ingestion pipeline that:
-1. Scans document directories
-2. Selects appropriate parser
-3. Chunks text into segments
-4. Generates embeddings
-5. Stores in vector database
+With parsers ready, M5 will build the ingestion pipeline that:
+1. Scans document directories for supported files
+2. Selects the appropriate parser via ParserFactory
+3. Chunks parsed text into segments (~500 tokens, 50 overlap)
+4. Generates embeddings with EmbeddingService (M2)
+5. Stores vectors in QdrantDatabase (M3)
 
 ---
 
 **Related Files:**
+- `src/parsers/__init__.py` - Module exports
 - `src/parsers/config.py` - Parser configuration
-- `src/parsers/models.py` - ParsedDocument model
+- `src/parsers/models.py` - ParsedDocument dataclass
 - `src/parsers/base_parser.py` - Abstract interface
 - `src/parsers/pdf_parser.py` - PDF implementation
 - `src/parsers/html_parser.py` - HTML implementation
 - `src/parsers/markdown_parser.py` - Markdown implementation
-- `src/parsers/parser_factory.py` - Parser selection
-- `tests/test_parsers.py` - Unit tests
+- `src/parsers/parser_factory.py` - Parser selection factory
+- `tests/unit/test_parsers.py` - Unit tests (41)
+- `tests/integration/test_parsers_integration.py` - Integration tests (7)

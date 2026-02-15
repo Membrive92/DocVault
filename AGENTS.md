@@ -183,8 +183,8 @@ Plus:
 | **M1: Foundation** | ✅ Done | Structure + Config with Pydantic | `python test_setup.py` |
 | **M2: Embeddings** | ✅ Done | `src/embeddings/embedding_service.py` | `pytest tests/ -k embeddings` |
 | **M3: Vector DB** | ✅ Done | `src/database/qdrant_database.py` | `pytest tests/ -k vector` |
-| **M4: Parsers** | 🚧 Next | `src/parsers/` (PDF/HTML/Markdown) | `pytest tests/ -k parsers` |
-| **M5: Ingestion** | ⏸️ | `src/ingestion/document_processor.py` | `pytest tests/ -k ingestion` |
+| **M4: Parsers** | ✅ Done | `src/parsers/` (PDF/HTML/Markdown) | `pytest tests/ -k parsers` |
+| **M5: Ingestion** | 🚧 Next | `src/ingestion/document_processor.py` | `pytest tests/ -k ingestion` |
 | **M6: Flexible LLM** | ⏸️ | `src/llm/providers/` + Factory | `pytest tests/ -k llm` |
 | **M7: Complete RAG** | ⏸️ | `src/rag/rag_pipeline.py` + API/CLI | `pytest tests/ -k rag` |
 
@@ -427,4 +427,4 @@ When the agent makes a new recurring error (2+ times):
 ---
 
 **Last update:** 2026-02-12
-**Status:** Milestone 3 completed — Ready for M4 (Document Parsers)
+**Status:** Milestone 4 completed — Ready for M5 (Ingestion Pipeline)
