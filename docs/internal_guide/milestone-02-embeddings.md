@@ -53,9 +53,10 @@ src/
     config.py                ← Constantes (no necesita clase)
     embedding_service.py     ← Clase principal
 tests/
-  test_embeddings.py         ← Tests pytest (como JUnit)
-scripts/
-  test_embedding.py          ← Script de verificacion manual
+  unit/
+    test_embeddings.py       ← Tests unitarios rapidos (como JUnit)
+  integration/
+    test_embeddings_integration.py  ← Tests de integracion con modelo real
 requirements.txt             ← Dependencias (como pom.xml)
 ```
 
@@ -1086,4 +1087,5 @@ leer y escribir codigo en cualquiera de los dos lenguajes.
 - [src/embeddings/config.py](../../src/embeddings/config.py) - Constantes de configuracion
 - [src/embeddings/\_\_init\_\_.py](../../src/embeddings/__init__.py) - Exportaciones del paquete
 - [src/embeddings/embedding_service.py](../../src/embeddings/embedding_service.py) - Servicio principal
-- [tests/test_embeddings.py](../../tests/test_embeddings.py) - Tests unitarios
+- [tests/unit/test_embeddings.py](../../tests/unit/test_embeddings.py) - Tests unitarios
+- [tests/integration/test_embeddings_integration.py](../../tests/integration/test_embeddings_integration.py) - Tests de integracion

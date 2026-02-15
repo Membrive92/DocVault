@@ -53,7 +53,17 @@ Switch providers by changing a single environment variable — no code changes r
 - [x] Unit tests with meaningful assertions
 - [x] Interactive verification script
 
-**Next:** Milestone 3 — Vector Database (Qdrant)
+**Milestone 3: Vector Database (Qdrant)** ✅ **COMPLETED**
+
+- [x] Abstract VectorDatabase interface (Strategy pattern)
+- [x] QdrantDatabase implementation with in-memory and persistent modes
+- [x] HNSW index with cosine distance (compatible with M2 embeddings)
+- [x] Insert, search, delete, and collection info operations
+- [x] Score threshold filtering for search results
+- [x] 19 unit tests with meaningful assertions
+- [x] Interactive verification script with real M2+M3 integration
+
+**Next:** Milestone 4 — Document Parsers (PDF, HTML, Markdown)
 
 ## 🗺️ Roadmap
 
@@ -61,8 +71,8 @@ Switch providers by changing a single environment variable — no code changes r
 |-----------|--------|-------|
 | **M1: Foundation** | ✅ Done | Project structure + Pydantic config |
 | **M2: Embeddings** | ✅ Done | Local sentence-transformers integration |
-| **M3: Vector DB** | 🚧 Next | Qdrant setup and connection |
-| **M4: Parsers** | ⏸️ Pending | PDF, HTML, Markdown document parsers |
+| **M3: Vector DB** | ✅ Done | Qdrant vector database integration |
+| **M4: Parsers** | 🚧 Next | PDF, HTML, Markdown document parsers |
 | **M5: Ingestion** | ⏸️ Pending | Document chunking and indexing pipeline |
 | **M6: Flexible LLM** | ⏸️ Pending | Multi-provider LLM abstraction layer |
 | **M7: Complete RAG** | ⏸️ Pending | End-to-end RAG pipeline + API + CLI |
@@ -143,8 +153,9 @@ DocVault/
 │   ├── rag/                  # [M7] Complete RAG pipeline
 │   ├── api/                  # [M7] FastAPI endpoints
 │   └── cli/                  # [M7] Interactive CLI
-├── tests/                    # Automated tests with pytest
-├── scripts/                  # Interactive verification scripts
+├── tests/                    # All tests with pytest
+│   ├── unit/                 # Fast unit tests (no ML model loading)
+│   └── integration/          # Slow integration tests (real models + services)
 ├── data/
 │   ├── documents/            # Documents to ingest (PDFs, HTML, MD)
 │   └── qdrant_storage/       # Vector DB persistence (gitignored)
@@ -205,14 +216,14 @@ DOCUMENTS_DIR=data/documents
 
 ## 🛠️ Technology Stack
 
-### Current (M1)
+### Current (M1-M3)
 - **Python 3.10+** — Modern type hints and async support
 - **Pydantic 2.x** — Type-safe configuration management
 - **pathlib** — Cross-platform path handling
-
-### Planned (M2-M7)
 - **sentence-transformers** — Local multilingual embeddings (M2)
 - **Qdrant** — Vector database for similarity search (M3)
+
+### Planned (M4-M7)
 - **pypdf / beautifulsoup4** — Document parsing (M4)
 - **Ollama / OpenAI / Anthropic** — LLM providers (M6)
 - **FastAPI** — REST API endpoints (M7)
@@ -242,11 +253,18 @@ This project is designed to be AI-agent-friendly. **Read [`AGENTS.md`](AGENTS.md
 ### Running Tests
 
 ```bash
-# Install pytest (will be added in M2+)
-pip install pytest
-
-# Run all tests
+# Run all tests (unit + integration)
 pytest
+
+# Run only fast unit tests
+pytest tests/unit/
+
+# Run only integration tests (slower, loads ML models)
+pytest tests/integration/
+
+# Run tests for a specific module
+pytest tests/ -k embeddings
+pytest tests/ -k vector
 
 # Run with coverage
 pytest --cov=src
@@ -281,6 +299,6 @@ Internal project - Enterprise use
 
 ---
 
-**Status:** Milestone 2 completed ✅ — Ready for Milestone 3 (Vector Database)
+**Status:** Milestone 3 completed ✅ — Ready for Milestone 4 (Document Parsers)
 
-**Last Updated:** 2026-02-11
+**Last Updated:** 2026-02-12
