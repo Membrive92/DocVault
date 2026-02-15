@@ -1,0 +1,16 @@
+"""
+Document parsers module.
+
+Provides parsers for extracting text and metadata from PDF, HTML,
+and Markdown documents. Use ParserFactory for automatic format detection.
+"""
+
+from __future__ import annotations
+
+from .base_parser import DocumentParser
+from .models import ParsedDocument
+
+__all__ = [
+    "DocumentParser",
+    "ParsedDocument",
+]
