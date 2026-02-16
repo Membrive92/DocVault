@@ -10,7 +10,7 @@ Pydantic gives us:
 """
 
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -77,6 +77,44 @@ class Settings(BaseSettings):
     qdrant_in_memory: bool = Field(
         default=False,
         description="Use in-memory storage (no persistence, for testing)"
+    )
+
+    # ==========================================
+    # LLM Configuration
+    # ==========================================
+    llm_provider: str = Field(
+        default="ollama_local",
+        description="LLM provider type (ollama_local, ollama_server, openai, anthropic)"
+    )
+
+    llm_model: Optional[str] = Field(
+        default=None,
+        description="LLM model name (provider-specific, uses provider default if None)"
+    )
+
+    llm_server_url: Optional[str] = Field(
+        default=None,
+        description="LLM server URL (for ollama_server provider)"
+    )
+
+    llm_temperature: float = Field(
+        default=0.7,
+        description="Generation temperature (0=deterministic, 1=creative)"
+    )
+
+    llm_max_tokens: int = Field(
+        default=1024,
+        description="Maximum tokens in LLM response"
+    )
+
+    openai_api_key: Optional[str] = Field(
+        default=None,
+        description="OpenAI API key"
+    )
+
+    anthropic_api_key: Optional[str] = Field(
+        default=None,
+        description="Anthropic API key"
     )
 
     # ==========================================
