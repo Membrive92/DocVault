@@ -118,6 +118,32 @@ class Settings(BaseSettings):
     )
 
     # ==========================================
+    # RAG Pipeline Configuration
+    # ==========================================
+    rag_top_k: int = Field(
+        default=5,
+        description="Number of chunks to retrieve per query"
+    )
+
+    rag_min_similarity: float = Field(
+        default=0.3,
+        description="Minimum similarity score for retrieval (0-1)"
+    )
+
+    # ==========================================
+    # API Server Configuration
+    # ==========================================
+    api_host: str = Field(
+        default="0.0.0.0",
+        description="API server host"
+    )
+
+    api_port: int = Field(
+        default=8000,
+        description="API server port"
+    )
+
+    # ==========================================
     # Pydantic Settings Configuration
     # ==========================================
     model_config = SettingsConfigDict(
