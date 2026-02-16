@@ -184,8 +184,8 @@ Plus:
 | **M2: Embeddings** | ✅ Done | `src/embeddings/embedding_service.py` | `pytest tests/ -k embeddings` |
 | **M3: Vector DB** | ✅ Done | `src/database/qdrant_database.py` | `pytest tests/ -k vector` |
 | **M4: Parsers** | ✅ Done | `src/parsers/` (PDF/HTML/Markdown) | `pytest tests/ -k parsers` |
-| **M5: Ingestion** | 🚧 Next | `src/ingestion/document_processor.py` | `pytest tests/ -k ingestion` |
-| **M6: Flexible LLM** | ⏸️ | `src/llm/providers/` + Factory | `pytest tests/ -k llm` |
+| **M5: Ingestion** | ✅ Done | `src/ingestion/pipeline.py` | `pytest tests/ -k ingestion` |
+| **M6: Flexible LLM** | 🚧 Next | `src/llm/providers/` + Factory | `pytest tests/ -k llm` |
 | **M7: Complete RAG** | ⏸️ | `src/rag/rag_pipeline.py` + API/CLI | `pytest tests/ -k rag` |
 
 **Rule:** Don't skip milestones. Each one must be verified before continuing.
@@ -427,4 +427,4 @@ When the agent makes a new recurring error (2+ times):
 ---
 
 **Last update:** 2026-02-12
-**Status:** Milestone 4 completed — Ready for M5 (Ingestion Pipeline)
+**Status:** Milestone 5 completed — Ready for M6 (Flexible LLM)

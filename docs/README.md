@@ -45,16 +45,13 @@ Development milestones are implemented sequentially, each building on the previo
    - Parser factory pattern
    - Metadata extraction
 
-#### 🚧 Next
-
 5. **[milestone-05-ingestion.md](milestone-05-ingestion.md)** - Document Ingestion Pipeline
-   - Text chunking strategy (~500 tokens with 50 token overlap)
-   - Batch embedding generation
-   - State management for incremental indexing
-   - End-to-end ingestion pipeline
-   - CLI interface
+   - Text chunking with paragraph-first strategy and overlap
+   - Incremental indexing with state tracking (JSON + mtime)
+   - End-to-end pipeline orchestrating M2+M3+M4
+   - Deterministic UUID5 chunk IDs
 
-#### ⏸️ Pending
+#### 🚧 Next
 
 6. **[milestone-06-llm.md](milestone-06-llm.md)** - Flexible LLM Layer
    - Strategy Pattern for provider abstraction
@@ -151,5 +148,5 @@ When updating documentation:
 ---
 
 **Last Updated:** 2026-02-12
-**Current Milestone:** M4 (Parsers) - ✅ Complete
-**Next Milestone:** M5 (Ingestion Pipeline)
+**Current Milestone:** M5 (Ingestion Pipeline) - ✅ Complete
+**Next Milestone:** M6 (Flexible LLM)

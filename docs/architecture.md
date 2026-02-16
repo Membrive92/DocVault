@@ -1,7 +1,7 @@
 # DocVault - System Architecture
 
 > **Last Updated:** 2026-02-12
-> **Status:** M4 Completed - Document Parsers Working
+> **Status:** M5 Completed - Ingestion Pipeline Working
 
 ---
 
@@ -261,11 +261,12 @@ embeddings = service.generate_batch_embeddings(
 - Remove HTML boilerplate (scripts, nav, sidebar, ads)
 - YAML frontmatter extraction for Markdown
 
-#### M5: Ingestion Pipeline
-- **Text Chunking:** Split documents into ~500 token chunks
-- **Overlap Strategy:** 50 tokens overlap between chunks
-- **Metadata Enrichment:** Add filename, chunk_id, project, etc.
-- **Batch Processing:** Process entire folders efficiently
+#### M5: Ingestion Pipeline ✅
+- **TextChunker:** Paragraph-first chunking (~500 tokens, 50 overlap)
+- **IngestionStateManager:** JSON-based incremental indexing with mtime detection
+- **IngestionPipeline:** End-to-end orchestrator (parse → chunk → embed → store)
+- **Deterministic UUIDs:** uuid5 for chunk IDs, enabling safe re-indexing
+- **File Discovery:** Extension filtering, skip patterns, recursive scanning
 
 **Chunking Strategy:**
 ```
@@ -612,15 +613,15 @@ Capacity: ~1M docs, ~1000 req/s
 
 ## Next Steps
 
-**Current Status:** Milestone 4 completed (Document Parsers)
+**Current Status:** Milestone 5 completed (Ingestion Pipeline)
 
-**Next Milestone:** M5 - Ingestion Pipeline (Chunking + Indexing)
+**Next Milestone:** M6 - Flexible LLM Layer (Multi-provider Abstraction)
 
 See individual milestone documents for detailed implementation plans:
 - [Milestone 1: Foundation](milestone-01-foundation.md) ✅
 - [Milestone 2: Embeddings](milestone-02-embeddings.md) ✅
 - [Milestone 3: Vector DB](milestone-03-vector-db.md) ✅
 - [Milestone 4: Parsers](milestone-04-parsers.md) ✅
-- [Milestone 5: Ingestion](milestone-05-ingestion.md) 🚧
-- [Milestone 6: Flexible LLM](milestone-06-llm.md)
+- [Milestone 5: Ingestion](milestone-05-ingestion.md) ✅
+- [Milestone 6: Flexible LLM](milestone-06-llm.md) 🚧
 - [Milestone 7: Complete RAG](milestone-07-rag.md)

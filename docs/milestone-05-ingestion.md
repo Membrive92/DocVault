@@ -1,6 +1,6 @@
 # Milestone 5: Document Ingestion Pipeline
 
-**Status:** ⏸️ Pending
+**Status:** ✅ Completed
 **Dependencies:** M2 (Embeddings), M3 (Vector DB), M4 (Parsers)
 **Goal:** Build end-to-end pipeline to ingest, chunk, embed, and index documents
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This milestone integrates all previous components into a complete document ingestion pipeline. It scans directories, parses documents, chunks text, generates embeddings, and stores them in the vector database.
+This milestone integrates all previous components (M2 Embeddings, M3 Vector DB, M4 Parsers) into a complete document ingestion pipeline. It scans directories, parses documents, chunks text, generates embeddings, and stores them in the vector database with incremental indexing support.
 
 ## Pipeline Architecture
 
@@ -20,15 +20,16 @@ This milestone integrates all previous components into a complete document inges
                             ▼
       ┌────────────────────────────────────────┐
       │  1. DISCOVERY                          │
-      │  - Scan document directories           │
-      │  - Filter by extension                 │
-      │  - Skip already indexed files          │
+      │  - Scan directories (recursive)        │
+      │  - Filter by extension (.pdf/.html/.md)│
+      │  - Skip patterns (.git, __pycache__)   │
+      │  - Skip already indexed (mtime check)  │
       └────────────────────────────────────────┘
                             │
                             ▼
       ┌────────────────────────────────────────┐
-      │  2. PARSING                            │
-      │  - Select appropriate parser (M4)      │
+      │  2. PARSING (M4)                       │
+      │  - ParserFactory.parse() → ParsedDoc   │
       │  - Extract text + metadata             │
       │  - Validate content                    │
       └────────────────────────────────────────┘
@@ -36,756 +37,193 @@ This milestone integrates all previous components into a complete document inges
                             ▼
       ┌────────────────────────────────────────┐
       │  3. CHUNKING                           │
-      │  - Split text into segments            │
-      │  - ~500 tokens per chunk               │
-      │  - 50 token overlap                    │
-      │  - Preserve context                    │
+      │  - Paragraph-first splitting           │
+      │  - ~500 tokens per chunk (2000 chars)  │
+      │  - 50 token overlap (200 chars)        │
+      │  - Sentence fallback for giant blocks  │
+      │  - Filter below 100 tokens minimum     │
       └────────────────────────────────────────┘
                             │
                             ▼
       ┌────────────────────────────────────────┐
-      │  4. EMBEDDING                          │
-      │  - Generate vectors (M2)               │
-      │  - Batch processing                    │
-      │  - Progress tracking                   │
+      │  4. EMBEDDING (M2)                     │
+      │  - Batch processing (32 per batch)     │
+      │  - 384-dim vectors (MiniLM-L12)        │
+      │  - L2 normalized for cosine similarity │
       └────────────────────────────────────────┘
                             │
                             ▼
       ┌────────────────────────────────────────┐
-      │  5. INDEXING                           │
-      │  - Store in Qdrant (M3)                │
-      │  - Include metadata                    │
-      │  - Update index state                  │
+      │  5. INDEXING (M3)                      │
+      │  - Deterministic UUID5 per chunk       │
+      │  - Store in Qdrant with metadata       │
+      │  - Update state (JSON + mtime)         │
       └────────────────────────────────────────┘
 ```
 
-## Why Chunking?
+## Implementation
 
-### The Problem
-- Documents are too long for single embeddings
-- LLM context windows have limits
-- Need focused, relevant chunks for RAG
+### Module Structure
 
-### The Solution
-- **Chunk size: ~500 tokens** (~375 words, ~2000 chars)
-  - Small enough: Focused topics, fits in context
-  - Large enough: Preserves meaning, good embeddings
-
-- **Overlap: 50 tokens** (~40 words, ~200 chars)
-  - Prevents information loss at chunk boundaries
-  - Maintains context across splits
-
-### Example
 ```
-Document: 2000 tokens
-
-Chunks:
-[0-500]    "Introduction to machine learning..."
-[450-950]  "...algorithms used in ML include..."  ← 50 token overlap
-[900-1400] "...neural networks are a subset..."
-[1350-1850] "...applications of deep learning..."
-[1800-2000] "...conclusion and future work"
+src/ingestion/
+├── __init__.py           # Module exports
+├── config.py             # Constants (chunk size, overlap, extensions)
+├── models.py             # ChunkMetadata, IngestionResult, IngestionSummary
+├── chunker.py            # TextChunker (paragraph-first + sentence fallback)
+├── state_manager.py      # IngestionStateManager (JSON persistence + mtime)
+└── pipeline.py           # IngestionPipeline (orchestrator)
 ```
 
-## Implementation Plan
+### Key Components
+
+#### TextChunker (`chunker.py`)
+- Paragraph-first strategy: splits on `\n\n`, preserves natural boundaries
+- Overlap: carries last paragraph of previous chunk to next chunk
+- Sentence fallback: splits by `.!?` for paragraphs exceeding 2x chunk size
+- Configurable: chunk_size, overlap, min_chunk_size
+- Token approximation: 4 chars ≈ 1 token (no external tokenizer dependency)
+
+#### IngestionStateManager (`state_manager.py`)
+- JSON file tracking indexed files with modification time (mtime)
+- `is_indexed()`: checks if file is indexed AND unchanged since last indexing
+- `mark_indexed()`: records file path, mtime, chunk count, metadata
+- `remove_indexed()`: un-marks a file
+- Uses `path.resolve()` for canonical paths (handles symlinks on all platforms)
+
+#### IngestionPipeline (`pipeline.py`)
+- Dependency injection: accepts optional EmbeddingService and QdrantDatabase
+- `ingest_file()`: single file through all 5 stages
+- `ingest_directory()`: batch processing with skip/force options
+- Deterministic UUID5 based on `file_path::chunk::index` (safe re-indexing)
+- Per-file error handling: one failure doesn't abort the batch
+
+#### Data Models (`models.py`)
+- `ChunkMetadata`: stored in Qdrant per vector point (chunk_text, source_file, chunk_index, etc.)
+- `IngestionResult`: per-file result (status: success/skipped/failed)
+- `IngestionSummary`: directory-level totals (processed, skipped, failed, total_chunks)
+
+### Configuration (`config.py`)
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `CHUNK_SIZE` | 500 tokens | Target chunk size |
+| `CHUNK_OVERLAP` | 50 tokens | Overlap between consecutive chunks |
+| `MIN_CHUNK_SIZE` | 100 tokens | Minimum chunk size (smaller discarded) |
+| `CHARS_PER_TOKEN` | 4 | Token approximation factor |
+| `BATCH_SIZE` | 32 | Embedding batch size |
+| `SUPPORTED_EXTENSIONS` | .pdf .html .htm .md .markdown | File types to process |
+| `SKIP_PATTERNS` | __pycache__ .git node_modules .venv | Directories to skip |
+| `INDEX_STATE_FILE` | data/index_state.json | State persistence path |
+
+## Usage
 
-### Task 1: Text Chunking Strategy
-
-**File:** `src/ingestion/chunker.py`
-
-```python
-"""
-Text chunking utilities for document ingestion.
-
-Splits long documents into semantic chunks suitable for embedding.
-"""
-
-from __future__ import annotations
-
-import re
-from typing import List
-
-from .config import CHUNK_SIZE, CHUNK_OVERLAP, MIN_CHUNK_SIZE
-
-
-class TextChunker:
-    """
-    Splits text into overlapping chunks for embedding.
-
-    Uses token-aware chunking to preserve semantic meaning.
-    """
-
-    def __init__(
-        self,
-        chunk_size: int = CHUNK_SIZE,
-        chunk_overlap: int = CHUNK_OVERLAP,
-        min_chunk_size: int = MIN_CHUNK_SIZE
-    ) -> None:
-        """
-        Initialize chunker.
-
-        Args:
-            chunk_size: Target size in tokens (~500)
-            chunk_overlap: Overlap between chunks in tokens (~50)
-            min_chunk_size: Minimum chunk size to keep
-        """
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-        self.min_chunk_size = min_chunk_size
-
-    def chunk_text(self, text: str) -> List[str]:
-        """
-        Split text into overlapping chunks.
-
-        Args:
-            text: Input text to chunk
-
-        Returns:
-            List of text chunks
-        """
-        if not text or not text.strip():
-            return []
-
-        # Simple token approximation: ~4 chars per token
-        # More accurate: use tiktoken, but adds dependency
-        chars_per_token = 4
-        chunk_chars = self.chunk_size * chars_per_token
-        overlap_chars = self.chunk_overlap * chars_per_token
-
-        # Split by paragraphs first (preserve natural breaks)
-        paragraphs = re.split(r'\n\s*\n', text)
-
-        chunks = []
-        current_chunk = []
-        current_length = 0
-
-        for paragraph in paragraphs:
-            para_length = len(paragraph)
-
-            # If single paragraph exceeds chunk size, force split
-            if para_length > chunk_chars * 2:
-                # Add current chunk if any
-                if current_chunk:
-                    chunks.append('\n\n'.join(current_chunk))
-                    current_chunk = []
-                    current_length = 0
-
-                # Split large paragraph by sentences
-                sentences = re.split(r'(?<=[.!?])\s+', paragraph)
-                temp_chunk = []
-                temp_length = 0
-
-                for sentence in sentences:
-                    sent_length = len(sentence)
-
-                    if temp_length + sent_length > chunk_chars:
-                        if temp_chunk:
-                            chunks.append(' '.join(temp_chunk))
-                        temp_chunk = [sentence]
-                        temp_length = sent_length
-                    else:
-                        temp_chunk.append(sentence)
-                        temp_length += sent_length
-
-                if temp_chunk:
-                    chunks.append(' '.join(temp_chunk))
-
-            # Normal case: add paragraph to current chunk
-            elif current_length + para_length > chunk_chars:
-                # Save current chunk
-                if current_chunk:
-                    chunks.append('\n\n'.join(current_chunk))
-
-                # Start new chunk with overlap
-                # Keep last paragraph for context
-                if current_chunk and len(current_chunk[-1]) < overlap_chars * 2:
-                    current_chunk = [current_chunk[-1], paragraph]
-                    current_length = len(current_chunk[-1]) + para_length
-                else:
-                    current_chunk = [paragraph]
-                    current_length = para_length
-            else:
-                current_chunk.append(paragraph)
-                current_length += para_length
-
-        # Add final chunk
-        if current_chunk:
-            chunks.append('\n\n'.join(current_chunk))
-
-        # Filter out chunks that are too small
-        min_chars = self.min_chunk_size * chars_per_token
-        chunks = [c for c in chunks if len(c) >= min_chars]
-
-        return chunks
-```
-
-**Key Design:**
-- Paragraph-aware chunking (preserves natural breaks)
-- Sentence splitting for large paragraphs
-- Overlap maintains context
-- Character-based approximation (4 chars ≈ 1 token)
-
-### Task 2: Ingestion Configuration
-
-**File:** `src/ingestion/config.py`
-
-```python
-"""
-Configuration for document ingestion pipeline.
-"""
-
-from __future__ import annotations
-
-# Chunking parameters
-CHUNK_SIZE = 500          # Tokens per chunk
-CHUNK_OVERLAP = 50        # Overlap between chunks
-MIN_CHUNK_SIZE = 100      # Minimum chunk size
-
-# Ingestion settings
-BATCH_SIZE = 32           # Embeddings per batch
-MAX_WORKERS = 4           # Parallel file processing
-SHOW_PROGRESS = True      # Show progress bars
-
-# File filtering
-SUPPORTED_EXTENSIONS = [".pdf", ".html", ".htm", ".md", ".markdown"]
-SKIP_HIDDEN_FILES = True  # Skip files starting with .
-SKIP_PATTERNS = [         # Skip files matching these patterns
-    "__pycache__",
-    ".git",
-    "node_modules",
-    ".venv",
-    "venv",
-]
-
-# State tracking
-INDEX_STATE_FILE = "data/index_state.json"  # Track indexed files
-```
-
-### Task 3: Ingestion State Manager
-
-**File:** `src/ingestion/state_manager.py`
-
-```python
-"""
-Manages ingestion state to track which files have been indexed.
-"""
-
-from __future__ import annotations
-
-import json
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, Optional
-
-
-class IngestionStateManager:
-    """
-    Tracks which files have been indexed and their metadata.
-
-    Prevents re-indexing unchanged files.
-    """
-
-    def __init__(self, state_file: str | Path) -> None:
-        """
-        Initialize state manager.
-
-        Args:
-            state_file: Path to JSON state file
-        """
-        self.state_file = Path(state_file)
-        self.state_file.parent.mkdir(parents=True, exist_ok=True)
-        self.state: Dict[str, dict] = self._load_state()
-
-    def _load_state(self) -> Dict[str, dict]:
-        """Load state from file."""
-        if not self.state_file.exists():
-            return {}
-
-        with open(self.state_file, 'r') as f:
-            return json.load(f)
-
-    def _save_state(self) -> None:
-        """Save state to file."""
-        with open(self.state_file, 'w') as f:
-            json.dump(self.state, f, indent=2)
-
-    def is_indexed(self, file_path: str | Path) -> bool:
-        """
-        Check if file has been indexed.
-
-        Also checks if file has been modified since last indexing.
-
-        Args:
-            file_path: Path to check
-
-        Returns:
-            True if file is already indexed and unchanged
-        """
-        path = Path(file_path)
-        key = str(path.absolute())
-
-        if key not in self.state:
-            return False
-
-        # Check if file modified since last index
-        last_modified = path.stat().st_mtime
-        indexed_mtime = self.state[key].get('mtime')
-
-        return indexed_mtime == last_modified
-
-    def mark_indexed(
-        self,
-        file_path: str | Path,
-        chunk_count: int,
-        metadata: Optional[dict] = None
-    ) -> None:
-        """
-        Mark file as indexed.
-
-        Args:
-            file_path: Path to file
-            chunk_count: Number of chunks created
-            metadata: Optional additional metadata
-        """
-        path = Path(file_path)
-        key = str(path.absolute())
-
-        self.state[key] = {
-            'indexed_at': datetime.utcnow().isoformat(),
-            'mtime': path.stat().st_mtime,
-            'chunk_count': chunk_count,
-            'metadata': metadata or {}
-        }
-
-        self._save_state()
-
-    def remove_indexed(self, file_path: str | Path) -> None:
-        """Remove file from indexed state."""
-        key = str(Path(file_path).absolute())
-        if key in self.state:
-            del self.state[key]
-            self._save_state()
-
-    def get_stats(self) -> dict:
-        """Get indexing statistics."""
-        return {
-            'total_files': len(self.state),
-            'total_chunks': sum(s['chunk_count'] for s in self.state.values())
-        }
-```
-
-### Task 4: Main Ingestion Pipeline
-
-**File:** `src/ingestion/pipeline.py`
-
-```python
-"""
-Main document ingestion pipeline.
-
-Orchestrates parsing, chunking, embedding, and indexing.
-"""
-
-from __future__ import annotations
-
-import logging
-from pathlib import Path
-from typing import List, Optional
-from uuid import uuid4
-
-from src.database import QdrantDatabase
-from src.embeddings import EmbeddingService
-from src.parsers import ParserFactory
-
-from .chunker import TextChunker
-from .config import (
-    BATCH_SIZE,
-    CHUNK_OVERLAP,
-    CHUNK_SIZE,
-    INDEX_STATE_FILE,
-    SHOW_PROGRESS,
-    SKIP_HIDDEN_FILES,
-    SKIP_PATTERNS,
-    SUPPORTED_EXTENSIONS,
-)
-from .state_manager import IngestionStateManager
-
-
-logger = logging.getLogger(__name__)
-
-
-class IngestionPipeline:
-    """
-    End-to-end document ingestion pipeline.
-
-    Processes documents from parsing through indexing.
-    """
-
-    def __init__(
-        self,
-        embedding_service: Optional[EmbeddingService] = None,
-        vector_db: Optional[QdrantDatabase] = None,
-    ) -> None:
-        """
-        Initialize ingestion pipeline.
-
-        Args:
-            embedding_service: Service for generating embeddings
-            vector_db: Vector database for storage
-        """
-        self.embedding_service = embedding_service or EmbeddingService()
-        self.vector_db = vector_db or QdrantDatabase()
-        self.parser_factory = ParserFactory()
-        self.chunker = TextChunker(
-            chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP
-        )
-        self.state_manager = IngestionStateManager(INDEX_STATE_FILE)
-
-        logger.info("Ingestion pipeline initialized")
-
-    def ingest_directory(
-        self,
-        directory: str | Path,
-        recursive: bool = True,
-        force_reindex: bool = False
-    ) -> dict:
-        """
-        Ingest all supported documents from a directory.
-
-        Args:
-            directory: Path to directory
-            recursive: Search subdirectories
-            force_reindex: Re-index even if file already indexed
-
-        Returns:
-            Statistics about ingestion
-        """
-        dir_path = Path(directory)
-
-        if not dir_path.exists() or not dir_path.is_dir():
-            raise ValueError(f"Invalid directory: {directory}")
-
-        logger.info(f"Starting ingestion from: {dir_path}")
-
-        # Discover files
-        files = self._discover_files(dir_path, recursive)
-        logger.info(f"Found {len(files)} files to process")
-
-        # Filter already indexed
-        if not force_reindex:
-            files = [f for f in files if not self.state_manager.is_indexed(f)]
-            logger.info(f"{len(files)} files need indexing")
-
-        # Process each file
-        stats = {
-            'processed': 0,
-            'failed': 0,
-            'total_chunks': 0,
-            'skipped': 0
-        }
-
-        for file_path in files:
-            try:
-                result = self.ingest_file(file_path)
-                stats['processed'] += 1
-                stats['total_chunks'] += result['chunks']
-                logger.info(f"✓ {file_path.name}: {result['chunks']} chunks")
-
-            except Exception as e:
-                stats['failed'] += 1
-                logger.error(f"✗ {file_path.name}: {e}")
-
-        logger.info(f"Ingestion complete: {stats}")
-        return stats
-
-    def ingest_file(self, file_path: str | Path) -> dict:
-        """
-        Ingest a single file.
-
-        Args:
-            file_path: Path to file
-
-        Returns:
-            Statistics for this file
-        """
-        path = Path(file_path)
-
-        # 1. Parse document
-        parsed_doc = self.parser_factory.parse(path)
-        logger.debug(f"Parsed {path.name}: {parsed_doc.word_count} words")
-
-        # 2. Chunk text
-        chunks = self.chunker.chunk_text(parsed_doc.text)
-        logger.debug(f"Created {len(chunks)} chunks")
-
-        if not chunks:
-            raise ValueError("No chunks created from document")
-
-        # 3. Generate embeddings (batch)
-        embeddings = self.embedding_service.generate_batch_embeddings(
-            chunks,
-            batch_size=BATCH_SIZE,
-            show_progress=SHOW_PROGRESS
-        )
-
-        # 4. Prepare metadata for each chunk
-        ids = [str(uuid4()) for _ in chunks]
-        metadata_list = []
-
-        for i, chunk_text in enumerate(chunks):
-            metadata_list.append({
-                'source_file': str(path),
-                'chunk_index': i,
-                'chunk_text': chunk_text,
-                'document_title': parsed_doc.title,
-                'document_format': parsed_doc.format,
-                'total_chunks': len(chunks),
-            })
-
-        # 5. Insert into vector database
-        self.vector_db.insert_vectors(
-            ids=ids,
-            vectors=embeddings,
-            metadata=metadata_list
-        )
-
-        # 6. Update state
-        self.state_manager.mark_indexed(
-            path,
-            chunk_count=len(chunks),
-            metadata={
-                'title': parsed_doc.title,
-                'format': parsed_doc.format
-            }
-        )
-
-        return {
-            'chunks': len(chunks),
-            'embeddings': len(embeddings)
-        }
-
-    def _discover_files(
-        self,
-        directory: Path,
-        recursive: bool
-    ) -> List[Path]:
-        """Discover all supported files in directory."""
-        pattern = "**/*" if recursive else "*"
-        all_files = directory.glob(pattern)
-
-        supported_files = []
-
-        for file in all_files:
-            # Skip if not a file
-            if not file.is_file():
-                continue
-
-            # Skip hidden files
-            if SKIP_HIDDEN_FILES and file.name.startswith('.'):
-                continue
-
-            # Skip by pattern
-            if any(pattern in str(file) for pattern in SKIP_PATTERNS):
-                continue
-
-            # Check extension
-            if file.suffix.lower() in SUPPORTED_EXTENSIONS:
-                supported_files.append(file)
-
-        return supported_files
-```
-
-### Task 5: CLI Interface
-
-**File:** `src/ingestion/cli.py`
-
-```python
-"""
-Command-line interface for document ingestion.
-"""
-
-from __future__ import annotations
-
-import argparse
-import logging
-import sys
-from pathlib import Path
-
-from .pipeline import IngestionPipeline
-
-
-def main() -> None:
-    """Run ingestion CLI."""
-    parser = argparse.ArgumentParser(
-        description="DocVault - Ingest documents into vector database"
-    )
-
-    parser.add_argument(
-        'directory',
-        type=str,
-        help='Directory containing documents to ingest'
-    )
-
-    parser.add_argument(
-        '--recursive',
-        action='store_true',
-        help='Recursively search subdirectories'
-    )
-
-    parser.add_argument(
-        '--force',
-        action='store_true',
-        help='Force re-indexing of already indexed files'
-    )
-
-    parser.add_argument(
-        '--verbose',
-        action='store_true',
-        help='Enable verbose logging'
-    )
-
-    args = parser.parse_args()
-
-    # Setup logging
-    level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
-
-    # Validate directory
-    directory = Path(args.directory)
-    if not directory.exists():
-        print(f"Error: Directory not found: {directory}")
-        sys.exit(1)
-
-    # Run ingestion
-    print(f"\n📚 DocVault - Document Ingestion")
-    print(f"Directory: {directory}")
-    print(f"Recursive: {args.recursive}")
-    print(f"Force: {args.force}\n")
-
-    try:
-        pipeline = IngestionPipeline()
-        stats = pipeline.ingest_directory(
-            directory,
-            recursive=args.recursive,
-            force_reindex=args.force
-        )
-
-        print(f"\n✅ Ingestion Complete!")
-        print(f"   Processed: {stats['processed']} files")
-        print(f"   Failed: {stats['failed']} files")
-        print(f"   Total chunks: {stats['total_chunks']}")
-
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()
-```
-
-### Task 6: Unit Tests
-
-**File:** `tests/test_ingestion.py`
-
-Test coverage:
-- Text chunking (overlap, size validation)
-- State management (tracking, modification detection)
-- Pipeline integration (end-to-end)
-- Error handling
-
-### Task 7: Interactive Verification
-
-**File:** `scripts/test_ingestion.py`
-
-Verification script:
-1. Create sample documents
-2. Run ingestion pipeline
-3. Verify chunks in database
-4. Test search functionality
-5. Display statistics
-
-## Usage Examples
-
-### Python API
 ```python
 from src.ingestion import IngestionPipeline
 
-# Initialize pipeline
+# Initialize pipeline (creates default services if not injected)
 pipeline = IngestionPipeline()
 
+# Ingest a single file
+result = pipeline.ingest_file("data/documents/guide.md")
+print(f"Created {result.chunks_created} chunks")
+
 # Ingest a directory
-stats = pipeline.ingest_directory(
+summary = pipeline.ingest_directory(
     "data/documents",
     recursive=True,
     force_reindex=False
 )
+print(f"Processed: {summary.processed}, Skipped: {summary.skipped}")
 
-print(f"Indexed {stats['total_chunks']} chunks from {stats['processed']} files")
+# With dependency injection (for testing)
+from src.database import QdrantDatabase
+from src.embeddings import EmbeddingService
+
+pipeline = IngestionPipeline(
+    embedding_service=EmbeddingService(),
+    vector_db=QdrantDatabase(in_memory=True),
+)
 ```
 
-### Command Line
+## Testing
+
+### Unit Tests (`tests/unit/test_ingestion.py`) — 30 tests
+
+| Class | Tests | What's Tested |
+|-------|-------|---------------|
+| `TestTextChunker` | 11 | Empty/short/medium/long text, overlap, paragraph boundaries, sentence splitting, custom params, validation errors |
+| `TestIngestionStateManager` | 7 | Index tracking, mtime detection, persistence, remove, stats |
+| `TestModels` | 6 | ChunkMetadata, IngestionResult, IngestionSummary creation and defaults |
+| `TestIngestionPipeline` | 6 | All stages called (mocked), file discovery, skip/force, errors captured |
+
+### Integration Tests (`tests/integration/test_ingestion_integration.py`) — 6 tests
+
+| Test | What's Verified |
+|------|-----------------|
+| `test_ingest_markdown_and_search` | MD → chunk → embed → store → semantic search returns relevant result |
+| `test_ingest_html_and_search` | HTML → chunk → embed → store → search works |
+| `test_incremental_indexing_skips_unchanged` | Second run skips already-indexed files |
+| `test_force_reindex_processes_again` | force_reindex=True re-processes everything |
+| `test_metadata_stored_correctly` | Qdrant metadata has all expected fields |
+| `test_directory_ingestion_summary` | Multi-file directory returns correct summary counts |
+
+### Running Tests
+
 ```bash
-# Ingest documents
-python -m src.ingestion.cli data/documents --recursive
+# M5 unit tests only (fast, no ML model)
+pytest tests/unit/test_ingestion.py -v
 
-# Force re-index
-python -m src.ingestion.cli data/documents --force --verbose
+# M5 integration tests (loads ML model)
+pytest tests/integration/test_ingestion_integration.py -v
+
+# All tests
+pytest tests/ -v
 ```
 
-## Performance Optimization
+## Design Decisions
 
-### Batch Processing
-- Embeddings generated in batches of 32
-- ~31x faster than sequential
+### UUID5 Instead of UUID4
+Using `uuid5(NAMESPACE_URL, f"{path.resolve()}::chunk::{i}")` generates deterministic IDs. The same file at the same path always produces the same UUIDs, enabling Qdrant to overwrite (upsert) on re-indexing instead of duplicating vectors.
 
-### Parallel Processing
-- Future: Multi-threaded file processing
-- Process multiple files simultaneously
+### No CLI (Deferred to M7)
+Per AGENTS.md: no API/CLI until M7. The pipeline is a Python API only, callable from tests and future M7 endpoints.
 
-### Incremental Indexing
-- State manager tracks indexed files
-- Only re-index if file modified
-- Saves time on large document sets
+### Typed Return Values
+Instead of raw `dict` returns, we use typed dataclasses (`IngestionResult`, `IngestionSummary`) for IDE autocomplete and runtime safety.
 
-## Monitoring and Logging
+### State Uses path.resolve()
+Canonical paths via `resolve()` handle symlinks and relative paths consistently across platforms (Windows backslashes, Unix forward slashes).
 
-### Progress Tracking
-```
-📚 DocVault - Document Ingestion
-Directory: data/documents
-Found 47 files to process
-✓ getting-started.md: 12 chunks
-✓ api-reference.pdf: 156 chunks
-✓ architecture.html: 34 chunks
-...
-✅ Ingestion Complete!
-   Processed: 47 files
-   Total chunks: 1,247
-```
+## Verification Criteria
 
-### Logging Levels
-- **INFO**: High-level progress
-- **DEBUG**: Detailed chunking/embedding info
-- **ERROR**: Failures with stack traces
+- [x] TextChunker splits text into chunks of ~500 tokens with 50-token overlap
+- [x] Paragraph boundaries are preserved during chunking
+- [x] IngestionStateManager tracks indexed files with mtime
+- [x] Modified files are detected and re-indexed
+- [x] IngestionPipeline orchestrates M2+M3+M4 end-to-end
+- [x] Deterministic UUID5 chunk IDs support re-indexing
+- [x] File discovery filters by extension and skip patterns
+- [x] Per-file error handling doesn't abort batch
+- [x] 30 unit tests pass
+- [x] 6 integration tests pass with real services
+- [x] All 129 project tests pass
 
 ## Next Steps (M6)
 
 With ingestion complete, M6 will implement the flexible LLM layer:
 - Strategy Pattern for provider abstraction
 - Ollama (local), OpenAI, Anthropic implementations
+- Provider factory for easy switching
 - Prompt templates for RAG queries
 
 ---
 
 **Related Files:**
-- `src/ingestion/config.py` - Ingestion configuration
-- `src/ingestion/chunker.py` - Text chunking
-- `src/ingestion/state_manager.py` - State tracking
-- `src/ingestion/pipeline.py` - Main pipeline
-- `src/ingestion/cli.py` - Command-line interface
-- `tests/test_ingestion.py` - Unit tests
-- `scripts/test_ingestion.py` - Interactive verification
+- `src/ingestion/config.py` — Pipeline configuration constants
+- `src/ingestion/models.py` — ChunkMetadata, IngestionResult, IngestionSummary
+- `src/ingestion/chunker.py` — TextChunker with paragraph-first strategy
+- `src/ingestion/state_manager.py` — JSON-based index state tracking
+- `src/ingestion/pipeline.py` — Main IngestionPipeline orchestrator
+- `tests/unit/test_ingestion.py` — 30 unit tests
+- `tests/integration/test_ingestion_integration.py` — 6 integration tests

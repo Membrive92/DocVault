@@ -73,7 +73,17 @@ Switch providers by changing a single environment variable — no code changes r
 - [x] ParsedDocument dataclass as standard output model
 - [x] 41 unit tests + 7 integration tests
 
-**Next:** Milestone 5 — Ingestion Pipeline (chunking + indexing)
+**Milestone 5: Ingestion Pipeline** ✅ **COMPLETED**
+
+- [x] TextChunker with paragraph-first strategy and overlap
+- [x] IngestionStateManager for incremental re-indexing (JSON + mtime)
+- [x] IngestionPipeline orchestrating M2+M3+M4 end-to-end
+- [x] Deterministic UUID5 for chunk IDs (supports re-indexing)
+- [x] File discovery with extension filtering and skip patterns
+- [x] ChunkMetadata, IngestionResult, IngestionSummary dataclasses
+- [x] 30 unit tests + 6 integration tests
+
+**Next:** Milestone 6 — Flexible LLM Layer (multi-provider abstraction)
 
 ## 🗺️ Roadmap
 
@@ -83,8 +93,8 @@ Switch providers by changing a single environment variable — no code changes r
 | **M2: Embeddings** | ✅ Done | Local sentence-transformers integration |
 | **M3: Vector DB** | ✅ Done | Qdrant vector database integration |
 | **M4: Parsers** | ✅ Done | PDF, HTML, Markdown document parsers |
-| **M5: Ingestion** | 🚧 Next | Document chunking and indexing pipeline |
-| **M6: Flexible LLM** | ⏸️ Pending | Multi-provider LLM abstraction layer |
+| **M5: Ingestion** | ✅ Done | Document chunking and indexing pipeline |
+| **M6: Flexible LLM** | 🚧 Next | Multi-provider LLM abstraction layer |
 | **M7: Complete RAG** | ⏸️ Pending | End-to-end RAG pipeline + API + CLI |
 
 ## 🚀 Quick Start
@@ -226,7 +236,7 @@ DOCUMENTS_DIR=data/documents
 
 ## 🛠️ Technology Stack
 
-### Current (M1-M4)
+### Current (M1-M5)
 - **Python 3.10+** — Modern type hints and async support
 - **Pydantic 2.x** — Type-safe configuration management
 - **pathlib** — Cross-platform path handling
@@ -235,8 +245,9 @@ DOCUMENTS_DIR=data/documents
 - **pypdf** — PDF text and metadata extraction (M4)
 - **BeautifulSoup4 + lxml** — HTML content extraction with boilerplate removal (M4)
 - **python-frontmatter** — Markdown YAML frontmatter parsing (M4)
+- **uuid5** — Deterministic chunk IDs for re-indexing (M5)
 
-### Planned (M5-M7)
+### Planned (M6-M7)
 - **Ollama / OpenAI / Anthropic** — LLM providers (M6)
 - **FastAPI** — REST API endpoints (M7)
 
@@ -278,6 +289,7 @@ pytest tests/integration/
 pytest tests/ -k embeddings
 pytest tests/ -k vector
 pytest tests/ -k parsers
+pytest tests/ -k ingestion
 
 # Run with coverage
 pytest --cov=src
@@ -312,6 +324,6 @@ Internal project - Enterprise use
 
 ---
 
-**Status:** Milestone 4 completed ✅ — Ready for Milestone 5 (Ingestion Pipeline)
+**Status:** Milestone 5 completed ✅ — Ready for Milestone 6 (Flexible LLM)
 
 **Last Updated:** 2026-02-12
