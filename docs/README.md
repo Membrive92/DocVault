@@ -59,15 +59,13 @@ Development milestones are implemented sequentially, each building on the previo
    - LLMProviderFactory with config/settings.py integration
    - RAG prompt template and streaming generation
 
-#### 🚧 Next
-
 7. **[milestone-07-rag.md](milestone-07-rag.md)** - Complete RAG Pipeline
-   - End-to-end RAG implementation
-   - FastAPI REST endpoints
-   - Interactive CLI interface
-   - Streaming responses
-   - Source citations
-   - Docker deployment
+   - RAGPipeline integrating embeddings + vector DB + LLM
+   - FastAPI REST API (health, query, query/stream, sources)
+   - Interactive CLI with rich formatting
+   - Streaming responses via StreamingResponse
+   - Source citations with similarity scores
+   - 15 unit + 9 API + 4 integration tests
 
 ## 🎯 Reading Recommendations
 
@@ -149,5 +147,4 @@ When updating documentation:
 ---
 
 **Last Updated:** 2026-02-12
-**Current Milestone:** M6 (Flexible LLM Layer) - ✅ Complete
-**Next Milestone:** M7 (Complete RAG Pipeline)
+**All Milestones Completed** (M1-M7) — Project feature-complete

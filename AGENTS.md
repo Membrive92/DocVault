@@ -186,9 +186,9 @@ Plus:
 | **M4: Parsers** | ✅ Done | `src/parsers/` (PDF/HTML/Markdown) | `pytest tests/ -k parsers` |
 | **M5: Ingestion** | ✅ Done | `src/ingestion/pipeline.py` | `pytest tests/ -k ingestion` |
 | **M6: Flexible LLM** | ✅ Done | `src/llm/` + Factory | `pytest tests/ -k llm` |
-| **M7: Complete RAG** | 🚧 Next | `src/rag/rag_pipeline.py` + API/CLI | `pytest tests/ -k rag` |
+| **M7: Complete RAG** | ✅ Done | `src/rag/pipeline.py` + API/CLI | `pytest tests/ -k rag` |
 
-**Rule:** Don't skip milestones. Each one must be verified before continuing.
+**All milestones completed.** Project is feature-complete.
 
 ---
 
@@ -223,12 +223,20 @@ LOG_LEVEL=INFO
 DATA_DIR=data
 DOCUMENTS_DIR=data/documents
 
-# [M6] LLM Configuration (future — don't configure until M6)
-# LLM_PROVIDER=ollama_local
+# LLM Configuration
+LLM_PROVIDER=ollama_local
 # LLM_MODEL=llama3.2:3b
 # LLM_SERVER_URL=http://localhost:11434
 # OPENAI_API_KEY=sk-...
 # ANTHROPIC_API_KEY=sk-ant-...
+
+# RAG Pipeline
+# RAG_TOP_K=5
+# RAG_MIN_SIMILARITY=0.3
+
+# API Server
+# API_HOST=0.0.0.0
+# API_PORT=8000
 ```
 
 ---
@@ -427,4 +435,4 @@ When the agent makes a new recurring error (2+ times):
 ---
 
 **Last update:** 2026-02-12
-**Status:** Milestone 6 completed — Ready for M7 (Complete RAG)
+**Status:** All milestones completed (M1-M7) — Project feature-complete

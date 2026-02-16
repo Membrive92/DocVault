@@ -1,7 +1,7 @@
 # DocVault - System Architecture
 
 > **Last Updated:** 2026-02-12
-> **Status:** M6 Completed - Flexible LLM Layer Working
+> **Status:** All Milestones Completed (M1-M7) - Project Feature-Complete
 
 ---
 
@@ -120,37 +120,51 @@ DocVault is a **local-first RAG (Retrieval-Augmented Generation)** system design
 
 ## Layer-by-Layer Breakdown
 
-### 1. Application Layer (M7)
+### 1. Application Layer (M7) ✅
 
 **Purpose:** User-facing interfaces
 
 **Components:**
-- **FastAPI REST API:** Programmatic access to RAG functionality
-- **Streamlit Web UI:** Interactive web interface for querying
-- **CLI Tool:** Terminal-based query interface
+- **FastAPI REST API:** Programmatic access with 4 endpoints
+  - `GET /health` — Health check with pipeline status
+  - `POST /query` — RAG query with answer + sources
+  - `POST /query/stream` — Streaming LLM response (text/plain)
+  - `GET /sources` — Indexed collection info
+- **Interactive CLI:** Terminal REPL with rich formatting (panels, markdown, colors)
+  - Commands: `/sources`, `/help`, `/exit`
+  - Lazy pipeline initialization
+  - Score-colored source citations
 
 **Key Features:**
-- Authentication & authorization
-- Request validation
-- Response formatting
-- Error handling
+- Pydantic request/response validation with Field constraints
+- Lifespan management for pipeline initialization
+- StreamingResponse for real-time LLM output
+- 503 Service Unavailable when pipeline not initialized
 
 ---
 
-### 2. RAG Pipeline Layer (M7)
+### 2. RAG Pipeline Layer (M7) ✅
 
 **Purpose:** Orchestrate the retrieval and generation process
 
+**Architecture:**
+```python
+class RAGPipeline:
+    def __init__(self, embedding_service, vector_db, llm_provider, config)
+    def query(query_text, top_k, temperature, max_tokens, streaming) -> RAGResponse | Iterator[str]
+    def get_indexed_sources() -> dict
+```
+
 **Workflow:**
 ```
-User Query → Query Processing → Vector Search → Context Assembly → LLM Generation → Response
+User Query → Embedding (M2) → Vector Search (M3) → Context Assembly → LLM Generation (M6) → RAGResponse
 ```
 
 **Components:**
-- **Query Processor:** Clean and prepare user queries
-- **Retrieval Engine:** Fetch relevant documents from Qdrant
-- **Context Assembler:** Build context from retrieved chunks
-- **Response Generator:** Generate answer using LLM + context
+- **RAGPipeline:** Main orchestrator with dependency injection
+- **Source:** Retrieved chunk with metadata and similarity score
+- **RAGResponse:** Answer + sources + timing metadata
+- **RAGConfig:** Pipeline configuration (top_k, temperature, max_tokens, min_similarity)
 
 ---
 
@@ -537,6 +551,9 @@ for chunk in llm.generate_stream(prompt="Explain RAG", context=context):
 | LLM (OpenAI) | openai SDK | Latest | OpenAI GPT models |
 | LLM (Anthropic) | anthropic SDK | Latest | Anthropic Claude models |
 | API | FastAPI | Latest | REST API endpoints |
+| API Server | uvicorn | Latest | ASGI server for FastAPI |
+| CLI | rich | Latest | Terminal formatting (panels, markdown) |
+| HTTP Client | httpx | Latest | Required by FastAPI TestClient |
 | Testing | pytest | Latest | Unit and integration tests |
 
 ### Development Tools
@@ -623,15 +640,13 @@ Capacity: ~1M docs, ~1000 req/s
 
 ## Next Steps
 
-**Current Status:** Milestone 6 completed (Flexible LLM Layer)
+**Current Status:** All milestones completed (M1-M7). Project is feature-complete.
 
-**Next Milestone:** M7 - Complete RAG Pipeline (Retrieval + Generation + API + CLI)
-
-See individual milestone documents for detailed implementation plans:
+See individual milestone documents for detailed implementation:
 - [Milestone 1: Foundation](milestone-01-foundation.md) ✅
 - [Milestone 2: Embeddings](milestone-02-embeddings.md) ✅
 - [Milestone 3: Vector DB](milestone-03-vector-db.md) ✅
 - [Milestone 4: Parsers](milestone-04-parsers.md) ✅
 - [Milestone 5: Ingestion](milestone-05-ingestion.md) ✅
 - [Milestone 6: Flexible LLM](milestone-06-llm.md) ✅
-- [Milestone 7: Complete RAG](milestone-07-rag.md) 🚧
+- [Milestone 7: Complete RAG](milestone-07-rag.md) ✅

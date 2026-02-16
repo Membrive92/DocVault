@@ -94,7 +94,19 @@ Switch providers by changing a single environment variable — no code changes r
 - [x] Sync and streaming generation for all providers
 - [x] 28 unit tests + 3 integration tests
 
-**Next:** Milestone 7 — Complete RAG Pipeline (retrieval + generation + API + CLI)
+**Milestone 7: Complete RAG Pipeline** ✅ **COMPLETED**
+
+- [x] RAGPipeline integrating M2+M3+M6 with dependency injection
+- [x] Source, RAGResponse, RAGConfig data models
+- [x] Context assembly with source headers and similarity scores
+- [x] FastAPI REST API (health, query, query/stream, sources)
+- [x] Pydantic request/response validation with Field constraints
+- [x] StreamingResponse for real-time LLM output
+- [x] Interactive CLI with rich formatting (panels, markdown, colors)
+- [x] Lazy pipeline initialization and REPL command handling
+- [x] 15 unit tests (RAG) + 9 unit tests (API) + 4 integration tests
+
+**All milestones completed — Project is feature-complete.**
 
 ## 🗺️ Roadmap
 
@@ -106,7 +118,7 @@ Switch providers by changing a single environment variable — no code changes r
 | **M4: Parsers** | ✅ Done | PDF, HTML, Markdown document parsers |
 | **M5: Ingestion** | ✅ Done | Document chunking and indexing pipeline |
 | **M6: Flexible LLM** | ✅ Done | Multi-provider LLM abstraction layer |
-| **M7: Complete RAG** | 🚧 Next | End-to-end RAG pipeline + API + CLI |
+| **M7: Complete RAG** | ✅ Done | End-to-end RAG pipeline + API + CLI |
 
 ## 🚀 Quick Start
 
@@ -245,11 +257,19 @@ LLM_PROVIDER=ollama_local
 # LLM_MAX_TOKENS=1024
 # OPENAI_API_KEY=sk-...
 # ANTHROPIC_API_KEY=sk-ant-...
+
+# RAG Pipeline
+# RAG_TOP_K=5
+# RAG_MIN_SIMILARITY=0.3
+
+# API Server
+# API_HOST=0.0.0.0
+# API_PORT=8000
 ```
 
 ## 🛠️ Technology Stack
 
-### Current (M1-M6)
+### Complete Stack (M1-M7)
 - **Python 3.10+** — Modern type hints and async support
 - **Pydantic 2.x** — Type-safe configuration management
 - **pathlib** — Cross-platform path handling
@@ -262,9 +282,8 @@ LLM_PROVIDER=ollama_local
 - **ollama** — Local LLM inference via Ollama SDK (M6)
 - **openai** — OpenAI GPT models via official SDK (M6)
 - **anthropic** — Anthropic Claude models via official SDK (M6)
-
-### Planned (M7)
-- **FastAPI** — REST API endpoints (M7)
+- **FastAPI + uvicorn** — REST API with streaming support (M7)
+- **rich** — Terminal formatting for interactive CLI (M7)
 
 **Note:** We are NOT using LangChain. The project implements custom components for learning and full control.
 
@@ -306,6 +325,8 @@ pytest tests/ -k vector
 pytest tests/ -k parsers
 pytest tests/ -k ingestion
 pytest tests/ -k llm
+pytest tests/ -k rag
+pytest tests/ -k api
 
 # Run with coverage
 pytest --cov=src
@@ -340,6 +361,6 @@ Internal project - Enterprise use
 
 ---
 
-**Status:** Milestone 6 completed ✅ — Ready for Milestone 7 (Complete RAG Pipeline)
+**Status:** All milestones completed ✅ — Project feature-complete (M1-M7)
 
 **Last Updated:** 2026-02-12
