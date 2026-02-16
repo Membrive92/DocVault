@@ -1,7 +1,7 @@
 # DocVault - System Architecture
 
 > **Last Updated:** 2026-02-12
-> **Status:** M5 Completed - Ingestion Pipeline Working
+> **Status:** M6 Completed - Flexible LLM Layer Working
 
 ---
 
@@ -154,30 +154,32 @@ User Query → Query Processing → Vector Search → Context Assembly → LLM G
 
 ---
 
-### 3. LLM Provider Layer (M6)
+### 3. LLM Provider Layer (M6) ✅
 
 **Purpose:** Flexible LLM abstraction using Strategy Pattern
 
 **Architecture:**
 ```python
-# Interface
-class LLMProvider:
-    def generate(self, prompt: str, context: str) -> str
-    def is_available(self) -> bool
+# Abstract interface
+class LLMProvider(ABC):
+    def generate(self, prompt: str, context: str, temperature: float, max_tokens: int) -> str
+    def generate_stream(self, prompt: str, context: str, ...) -> Iterator[str]
+    def get_model_info(self) -> dict[str, str]
+    def format_prompt_with_context(self, prompt: str, context: str) -> str  # concrete
 
 # Implementations
-- OllamaLocalProvider    # localhost:11434
-- OllamaServerProvider   # Custom server URL
-- OpenAIProvider         # OpenAI API
-- AnthropicProvider      # Claude API
+- OllamaProvider     # localhost:11434 or custom server URL
+- OpenAIProvider     # OpenAI API (GPT-4, GPT-3.5)
+- AnthropicProvider  # Anthropic API (Claude models)
 
 # Factory
-LLMFactory.create(provider_type) → LLMProvider
+LLMProviderFactory.create_provider(provider_type) → LLMProvider
 ```
 
 **Key Design Decision:**
 - **No vendor lock-in:** Switch providers with a single config change
-- **Automatic fallback:** Try local → server → API
+- **Sync + streaming:** Both `generate()` and `generate_stream()` for all providers
+- **RAG-ready:** Built-in `format_prompt_with_context()` template
 - **Cost flexibility:** Start free (local), scale as needed
 
 ---
@@ -441,12 +443,18 @@ python scripts/query_rag.py "How to install dependencies?"
 
 **Implementation:**
 ```python
-# Config change only
+# Config change only — .env file
 LLM_PROVIDER=ollama_local  # or openai, anthropic, ollama_server
 
 # Code stays the same
-llm = LLMFactory.create()
-response = llm.generate(prompt, context)
+from src.llm import LLMProviderFactory
+
+llm = LLMProviderFactory.create_provider()
+response = llm.generate(prompt="What is Python?", context=retrieved_chunks)
+
+# Streaming
+for chunk in llm.generate_stream(prompt="Explain RAG", context=context):
+    print(chunk, end="")
 ```
 
 ---
@@ -525,7 +533,9 @@ response = llm.generate(prompt, context)
 | PDF Parsing | pypdf | 6.7+ | PDF text and metadata extraction |
 | HTML Parsing | BeautifulSoup4 + lxml | 4.14+ | HTML content extraction |
 | MD Parsing | python-frontmatter | 1.1+ | Markdown YAML frontmatter |
-| LLM (local) | Ollama | Latest | Local LLM inference |
+| LLM (local) | Ollama SDK | Latest | Local LLM inference |
+| LLM (OpenAI) | openai SDK | Latest | OpenAI GPT models |
+| LLM (Anthropic) | anthropic SDK | Latest | Anthropic Claude models |
 | API | FastAPI | Latest | REST API endpoints |
 | Testing | pytest | Latest | Unit and integration tests |
 
@@ -613,9 +623,9 @@ Capacity: ~1M docs, ~1000 req/s
 
 ## Next Steps
 
-**Current Status:** Milestone 5 completed (Ingestion Pipeline)
+**Current Status:** Milestone 6 completed (Flexible LLM Layer)
 
-**Next Milestone:** M6 - Flexible LLM Layer (Multi-provider Abstraction)
+**Next Milestone:** M7 - Complete RAG Pipeline (Retrieval + Generation + API + CLI)
 
 See individual milestone documents for detailed implementation plans:
 - [Milestone 1: Foundation](milestone-01-foundation.md) ✅
@@ -623,5 +633,5 @@ See individual milestone documents for detailed implementation plans:
 - [Milestone 3: Vector DB](milestone-03-vector-db.md) ✅
 - [Milestone 4: Parsers](milestone-04-parsers.md) ✅
 - [Milestone 5: Ingestion](milestone-05-ingestion.md) ✅
-- [Milestone 6: Flexible LLM](milestone-06-llm.md) 🚧
-- [Milestone 7: Complete RAG](milestone-07-rag.md)
+- [Milestone 6: Flexible LLM](milestone-06-llm.md) ✅
+- [Milestone 7: Complete RAG](milestone-07-rag.md) 🚧

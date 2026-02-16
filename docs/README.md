@@ -51,14 +51,15 @@ Development milestones are implemented sequentially, each building on the previo
    - End-to-end pipeline orchestrating M2+M3+M4
    - Deterministic UUID5 chunk IDs
 
-#### 🚧 Next
-
 6. **[milestone-06-llm.md](milestone-06-llm.md)** - Flexible LLM Layer
-   - Strategy Pattern for provider abstraction
-   - Ollama provider (local and server)
-   - OpenAI provider (GPT-4, GPT-3.5)
-   - Anthropic provider (Claude)
-   - Provider factory for easy switching
+   - LLMProvider abstract interface (Strategy Pattern)
+   - OllamaProvider for local and remote Ollama servers
+   - OpenAIProvider for GPT-4/GPT-3.5 models
+   - AnthropicProvider for Claude models
+   - LLMProviderFactory with config/settings.py integration
+   - RAG prompt template and streaming generation
+
+#### 🚧 Next
 
 7. **[milestone-07-rag.md](milestone-07-rag.md)** - Complete RAG Pipeline
    - End-to-end RAG implementation
@@ -148,5 +149,5 @@ When updating documentation:
 ---
 
 **Last Updated:** 2026-02-12
-**Current Milestone:** M5 (Ingestion Pipeline) - ✅ Complete
-**Next Milestone:** M6 (Flexible LLM)
+**Current Milestone:** M6 (Flexible LLM Layer) - ✅ Complete
+**Next Milestone:** M7 (Complete RAG Pipeline)

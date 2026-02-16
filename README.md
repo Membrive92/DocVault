@@ -83,7 +83,18 @@ Switch providers by changing a single environment variable — no code changes r
 - [x] ChunkMetadata, IngestionResult, IngestionSummary dataclasses
 - [x] 30 unit tests + 6 integration tests
 
-**Next:** Milestone 6 — Flexible LLM Layer (multi-provider abstraction)
+**Milestone 6: Flexible LLM Layer** ✅ **COMPLETED**
+
+- [x] LLMProvider abstract interface (Strategy Pattern)
+- [x] OllamaProvider for local and remote Ollama servers
+- [x] OpenAIProvider for GPT-4/GPT-3.5 models
+- [x] AnthropicProvider for Claude models
+- [x] LLMProviderFactory with config/settings.py integration
+- [x] RAG prompt template (format_prompt_with_context)
+- [x] Sync and streaming generation for all providers
+- [x] 28 unit tests + 3 integration tests
+
+**Next:** Milestone 7 — Complete RAG Pipeline (retrieval + generation + API + CLI)
 
 ## 🗺️ Roadmap
 
@@ -94,8 +105,8 @@ Switch providers by changing a single environment variable — no code changes r
 | **M3: Vector DB** | ✅ Done | Qdrant vector database integration |
 | **M4: Parsers** | ✅ Done | PDF, HTML, Markdown document parsers |
 | **M5: Ingestion** | ✅ Done | Document chunking and indexing pipeline |
-| **M6: Flexible LLM** | 🚧 Next | Multi-provider LLM abstraction layer |
-| **M7: Complete RAG** | ⏸️ Pending | End-to-end RAG pipeline + API + CLI |
+| **M6: Flexible LLM** | ✅ Done | Multi-provider LLM abstraction layer |
+| **M7: Complete RAG** | 🚧 Next | End-to-end RAG pipeline + API + CLI |
 
 ## 🚀 Quick Start
 
@@ -226,17 +237,19 @@ LOG_LEVEL=INFO
 DATA_DIR=data
 DOCUMENTS_DIR=data/documents
 
-# [M6] LLM Configuration (future milestones)
-# LLM_PROVIDER=ollama_local
+# LLM Configuration
+LLM_PROVIDER=ollama_local
 # LLM_MODEL=llama3.2:3b
 # LLM_SERVER_URL=http://localhost:11434
+# LLM_TEMPERATURE=0.7
+# LLM_MAX_TOKENS=1024
 # OPENAI_API_KEY=sk-...
 # ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 ## 🛠️ Technology Stack
 
-### Current (M1-M5)
+### Current (M1-M6)
 - **Python 3.10+** — Modern type hints and async support
 - **Pydantic 2.x** — Type-safe configuration management
 - **pathlib** — Cross-platform path handling
@@ -246,9 +259,11 @@ DOCUMENTS_DIR=data/documents
 - **BeautifulSoup4 + lxml** — HTML content extraction with boilerplate removal (M4)
 - **python-frontmatter** — Markdown YAML frontmatter parsing (M4)
 - **uuid5** — Deterministic chunk IDs for re-indexing (M5)
+- **ollama** — Local LLM inference via Ollama SDK (M6)
+- **openai** — OpenAI GPT models via official SDK (M6)
+- **anthropic** — Anthropic Claude models via official SDK (M6)
 
-### Planned (M6-M7)
-- **Ollama / OpenAI / Anthropic** — LLM providers (M6)
+### Planned (M7)
 - **FastAPI** — REST API endpoints (M7)
 
 **Note:** We are NOT using LangChain. The project implements custom components for learning and full control.
@@ -290,6 +305,7 @@ pytest tests/ -k embeddings
 pytest tests/ -k vector
 pytest tests/ -k parsers
 pytest tests/ -k ingestion
+pytest tests/ -k llm
 
 # Run with coverage
 pytest --cov=src
@@ -324,6 +340,6 @@ Internal project - Enterprise use
 
 ---
 
-**Status:** Milestone 5 completed ✅ — Ready for Milestone 6 (Flexible LLM)
+**Status:** Milestone 6 completed ✅ — Ready for Milestone 7 (Complete RAG Pipeline)
 
 **Last Updated:** 2026-02-12
