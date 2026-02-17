@@ -187,8 +187,139 @@ Plus:
 | **M5: Ingestion** | ✅ Done | `src/ingestion/pipeline.py` | `pytest tests/ -k ingestion` |
 | **M6: Flexible LLM** | ✅ Done | `src/llm/` + Factory | `pytest tests/ -k llm` |
 | **M7: Complete RAG** | ✅ Done | `src/rag/pipeline.py` + API/CLI | `pytest tests/ -k rag` |
+| **M8: Web Frontend** | 🚧 In Progress | `frontend/` (React + Vite + TypeScript) | `cd frontend && npm run dev` |
 
-**All milestones completed.** Project is feature-complete.
+**M1-M7 completed.** M8 (Web Frontend) in progress — Phase 1 (Backend API) done.
+
+---
+
+# 🚧 M8: Web Frontend — Implementation Plan
+
+**Goal:** Build a web UI (React + Vite + TypeScript) for non-technical users who work with documentation.
+**Dependencies:** M7 (API), M5 (Ingestion)
+
+## Phase Progress
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| **Phase 1: Backend API** | ✅ Done | CORS + 6 new endpoints + 15 tests |
+| **Phase 2: Frontend Foundation** | 🚧 Next | Vite project + Tailwind + Router + Layout + API client + Types |
+| **Phase 3: Functional Pages** | ⏸️ Pending | QueryPage + DocumentsPage + AdminPage + Components |
+| **Phase 4: Polish & Documentation** | ⏸️ Pending | UX refinement + update docs with completion status |
+
+## Phase 1: Backend API ✅ Done
+
+Extended `src/api/server.py` with CORS middleware and 6 new endpoints:
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | `/documents/upload` | Upload files (multipart/form-data) to `data/documents/` |
+| GET | `/documents` | List files with metadata (name, size, format, date) |
+| DELETE | `/documents/{filename}` | Delete a document file |
+| POST | `/ingest` | Trigger ingestion (all files or specific file) |
+| GET | `/ingest/status` | Last ingestion summary |
+| GET | `/config` | Public configuration (no API keys) |
+
+New Pydantic models: `IngestRequest`, `DocumentInfo`, `UploadResponse`, `IngestResponse`, `ConfigResponse`.
+New dependency: `python-multipart==0.0.22`.
+15 new tests in `tests/unit/test_api.py` (24 total API tests, 170 total unit tests).
+
+## Phase 2: Frontend Foundation 🚧 Next
+
+Initialize with `npm create vite@latest frontend -- --template react-ts`.
+
+**Dependencies:**
+
+| Package | Purpose |
+|---------|---------|
+| `react-router-dom` | Page navigation |
+| `tailwindcss` + `@tailwindcss/vite` | Utility-first styling |
+| `lucide-react` | Icons |
+| `react-markdown` + `remark-gfm` | Render LLM responses as markdown |
+| `react-dropzone` | Drag & drop file upload |
+
+No Redux/Zustand — use `useState` + `useEffect`. No axios — use native `fetch`.
+
+**Tasks:**
+
+1. Create Vite project
+2. Install dependencies
+3. Configure Vite proxy (`/api` → `localhost:8000`)
+4. Configure Tailwind CSS
+5. Create TypeScript types (`src/types/index.ts`) matching backend models
+6. Create API client (`src/api/client.ts`) with fetch wrappers
+7. Create Layout component (`src/components/Layout.tsx`) with sidebar + header
+8. Set up Router (`src/main.tsx`) with 3 routes
+9. Create placeholder pages (QueryPage, DocumentsPage, AdminPage)
+
+**Project structure:**
+
+```
+frontend/
+├── vite.config.ts              # Proxy /api → localhost:8000
+├── src/
+│   ├── main.tsx                # Entry + Router
+│   ├── App.tsx                 # Layout wrapper
+│   ├── api/client.ts           # Fetch wrapper for all API calls
+│   ├── types/index.ts          # TypeScript interfaces matching backend models
+│   ├── pages/
+│   │   ├── QueryPage.tsx       # Placeholder → Phase 3
+│   │   ├── DocumentsPage.tsx   # Placeholder → Phase 3
+│   │   └── AdminPage.tsx       # Placeholder → Phase 3
+│   └── components/
+│       └── Layout.tsx          # Sidebar + header + content area
+```
+
+## Phase 3: Functional Pages ⏸️ Pending
+
+### QueryPage (main feature)
+- Text input + "Ask" button
+- POST /api/query (no streaming for v1)
+- Render answer with `react-markdown`
+- Source cards with color-coded scores (green > 0.7, yellow > 0.5, red)
+- Timing metrics footer
+- Session Q&A history (scroll up)
+- Components: `SourceCard.tsx`
+
+### DocumentsPage
+- Drag & drop upload zone (react-dropzone)
+- Format validation (PDF, HTML, Markdown only)
+- File list with size, date, format
+- Per-file "Ingest" and "Delete" buttons
+- "Ingest All" and "Force Re-index" actions
+- Ingestion feedback (processed, skipped, failed, chunks)
+- Components: `FileUploader.tsx`, `FileList.tsx`
+
+### AdminPage
+- Health status from GET /health
+- Collection info from GET /sources (vectors, dimensions, metric)
+- Configuration from GET /config (provider, model, top_k, min_similarity)
+- Auto-refresh every 30s
+- Components: `HealthBadge.tsx`
+
+## Phase 4: Polish & Documentation ⏸️ Pending
+
+- UX refinements and responsive design
+- Error states and edge cases
+- Update all documentation with M8 completion status
+
+## Verification
+
+```bash
+# Backend tests (Phase 1)
+pytest tests/unit/test_api.py -v
+
+# Start backend
+python -m src.api.server
+
+# Start frontend (separate terminal)
+cd frontend && npm run dev
+
+# Open http://localhost:5173
+# Documents → upload a file → Ingest All
+# Query → ask a question → verify answer + sources
+# Admin → check health + collection info
+```
 
 ---
 

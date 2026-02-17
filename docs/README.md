@@ -67,6 +67,14 @@ Development milestones are implemented sequentially, each building on the previo
    - Source citations with similarity scores
    - 15 unit + 9 API + 4 integration tests
 
+#### 🚧 In Progress
+
+8. **[milestone-08-frontend.md](milestone-08-frontend.md)** - Web Frontend (overview)
+   - **[Phase 1 ✅](milestone-08-phase1-backend-api.md)** — Backend API: CORS + 6 new endpoints + 15 tests
+   - **[Phase 2 🚧](milestone-08-phase2-frontend-foundation.md)** — Frontend Foundation: Vite + Tailwind + Router + Layout
+   - **[Phase 3 ⏸️](milestone-08-phase3-functional-pages.md)** — Functional Pages: QueryPage + DocumentsPage + AdminPage
+   - **[Phase 4 ⏸️](milestone-08-phase4-polish.md)** — Polish & Documentation
+
 ## 🎯 Reading Recommendations
 
 ### For New Contributors
@@ -80,6 +88,7 @@ Development milestones are implemented sequentially, each building on the previo
 - **Document Processing**: [milestone-04-parsers.md](milestone-04-parsers.md) + [milestone-05-ingestion.md](milestone-05-ingestion.md)
 - **LLM Integration**: [milestone-06-llm.md](milestone-06-llm.md)
 - **Complete System**: [milestone-07-rag.md](milestone-07-rag.md)
+- **Web Frontend**: [milestone-08-frontend.md](milestone-08-frontend.md)
 
 ### For Implementation Details
 Each milestone document includes:
@@ -147,4 +156,4 @@ When updating documentation:
 ---
 
 **Last Updated:** 2026-02-12
-**All Milestones Completed** (M1-M7) — Project feature-complete
+M1-M7 completed. M8 (Web Frontend) in progress — Phase 1 (Backend API) done.

@@ -34,81 +34,7 @@ The key architectural decision is the **provider-agnostic LLM layer** that allow
 
 Switch providers by changing a single environment variable — no code changes required.
 
-## 📦 Current Status
-
-**Milestone 1: Foundation** ✅ **COMPLETED**
-
-- [x] Project structure with modular organization
-- [x] Pydantic-based configuration system
-- [x] Environment variables management
-- [x] Installation verification script
-- [x] Comprehensive documentation (README, AGENTS.md)
-
-**Milestone 2: Local Embeddings** ✅ **COMPLETED**
-
-- [x] EmbeddingService with sentence-transformers
-- [x] Generate embeddings (single and batch)
-- [x] Multilingual support (English + Spanish)
-- [x] Cosine similarity for semantic search
-- [x] Unit tests with meaningful assertions
-- [x] Interactive verification script
-
-**Milestone 3: Vector Database (Qdrant)** ✅ **COMPLETED**
-
-- [x] Abstract VectorDatabase interface (Strategy pattern)
-- [x] QdrantDatabase implementation with in-memory and persistent modes
-- [x] HNSW index with cosine distance (compatible with M2 embeddings)
-- [x] Insert, search, delete, and collection info operations
-- [x] Score threshold filtering for search results
-- [x] 19 unit tests with meaningful assertions
-- [x] Interactive verification script with real M2+M3 integration
-
-**Milestone 4: Document Parsers** ✅ **COMPLETED**
-
-- [x] Abstract DocumentParser interface (Strategy pattern)
-- [x] PDFParser with pypdf (text + metadata extraction)
-- [x] HTMLParser with BeautifulSoup (boilerplate removal)
-- [x] MarkdownParser with python-frontmatter (YAML frontmatter)
-- [x] ParserFactory for automatic format detection
-- [x] ParsedDocument dataclass as standard output model
-- [x] 41 unit tests + 7 integration tests
-
-**Milestone 5: Ingestion Pipeline** ✅ **COMPLETED**
-
-- [x] TextChunker with paragraph-first strategy and overlap
-- [x] IngestionStateManager for incremental re-indexing (JSON + mtime)
-- [x] IngestionPipeline orchestrating M2+M3+M4 end-to-end
-- [x] Deterministic UUID5 for chunk IDs (supports re-indexing)
-- [x] File discovery with extension filtering and skip patterns
-- [x] ChunkMetadata, IngestionResult, IngestionSummary dataclasses
-- [x] 30 unit tests + 6 integration tests
-
-**Milestone 6: Flexible LLM Layer** ✅ **COMPLETED**
-
-- [x] LLMProvider abstract interface (Strategy Pattern)
-- [x] OllamaProvider for local and remote Ollama servers
-- [x] OpenAIProvider for GPT-4/GPT-3.5 models
-- [x] AnthropicProvider for Claude models
-- [x] LLMProviderFactory with config/settings.py integration
-- [x] RAG prompt template (format_prompt_with_context)
-- [x] Sync and streaming generation for all providers
-- [x] 28 unit tests + 3 integration tests
-
-**Milestone 7: Complete RAG Pipeline** ✅ **COMPLETED**
-
-- [x] RAGPipeline integrating M2+M3+M6 with dependency injection
-- [x] Source, RAGResponse, RAGConfig data models
-- [x] Context assembly with source headers and similarity scores
-- [x] FastAPI REST API (health, query, query/stream, sources)
-- [x] Pydantic request/response validation with Field constraints
-- [x] StreamingResponse for real-time LLM output
-- [x] Interactive CLI with rich formatting (panels, markdown, colors)
-- [x] Lazy pipeline initialization and REPL command handling
-- [x] 15 unit tests (RAG) + 9 unit tests (API) + 4 integration tests
-
-**All milestones completed — Project is feature-complete.**
-
-## 🗺️ Roadmap
+## 🗺️ Milestones
 
 | Milestone | Status | Focus |
 |-----------|--------|-------|
@@ -119,6 +45,22 @@ Switch providers by changing a single environment variable — no code changes r
 | **M5: Ingestion** | ✅ Done | Document chunking and indexing pipeline |
 | **M6: Flexible LLM** | ✅ Done | Multi-provider LLM abstraction layer |
 | **M7: Complete RAG** | ✅ Done | End-to-end RAG pipeline + API + CLI |
+| **M8: Web Frontend** | 🚧 In Progress | React + Vite UI for non-technical users |
+
+**203 tests passed** (unit + integration). See [docs/](docs/) for detailed milestone documentation.
+
+### Milestone 8: Web Frontend (In Progress)
+
+Web UI for non-technical documentation users built with **React + Vite + TypeScript + Tailwind CSS**.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| **Phase 1: Backend API** | ✅ Done | CORS + 6 new endpoints + 15 tests |
+| **Phase 2: Frontend Foundation** | 🚧 Next | Vite project + Tailwind + Router + Layout |
+| **Phase 3: Functional Pages** | ⏸️ Pending | QueryPage + DocumentsPage + AdminPage |
+| **Phase 4: Polish & Documentation** | ⏸️ Pending | UX refinement + responsive design |
+
+See [docs/milestone-08-frontend.md](docs/milestone-08-frontend.md) for detailed implementation plan.
 
 ## 🚀 Quick Start
 
@@ -165,7 +107,7 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-Edit `.env` if needed (defaults work for M1).
+Edit `.env` to configure your LLM provider (see [Environment Variables](#environment-variables)).
 
 5. **Verify installation**
 
@@ -173,10 +115,94 @@ Edit `.env` if needed (defaults work for M1).
 python test_setup.py
 ```
 
-Expected output:
+## 📖 Usage
+
+### 1. Ingest Documents
+
+Place your documents (PDF, HTML, Markdown) in `data/documents/`, then run the ingestion pipeline:
+
+```python
+from pathlib import Path
+from src.ingestion import IngestionPipeline
+
+pipeline = IngestionPipeline()
+summary = pipeline.ingest_directory(Path("data/documents/"))
+print(f"Ingested {summary.total_chunks} chunks from {summary.processed} files")
 ```
-🎉 Everything is configured correctly!
-📝 Next step: Milestone 2 - Embeddings
+
+### 2. Query via Python API
+
+```python
+from src.rag import RAGPipeline
+
+pipeline = RAGPipeline()
+
+response = pipeline.query("How do I configure logging?")
+print(response.answer)
+for source in response.sources:
+    print(f"  {source.source_file} (score: {source.similarity_score:.2f})")
+```
+
+### 3. Query via REST API
+
+```bash
+# Start the server
+python -m src.api.server
+
+# Health check
+curl http://localhost:8000/health
+
+# Query
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I install Docker?", "top_k": 5}'
+
+# Streaming response
+curl -X POST http://localhost:8000/query/stream \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is Kubernetes?"}' \
+  --no-buffer
+```
+
+### 4. Document Management via REST API
+
+```bash
+# Upload a document
+curl -X POST http://localhost:8000/documents/upload -F "file=@manual.pdf"
+
+# List all documents
+curl http://localhost:8000/documents
+
+# Delete a document
+curl -X DELETE http://localhost:8000/documents/manual.pdf
+
+# Trigger ingestion (all documents)
+curl -X POST http://localhost:8000/ingest \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# Force re-index
+curl -X POST http://localhost:8000/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"force_reindex": true}'
+
+# Check ingestion status
+curl http://localhost:8000/ingest/status
+
+# View public configuration
+curl http://localhost:8000/config
+```
+
+### 5. Query via Interactive CLI
+
+```bash
+python -m src.cli.interactive
+
+# Inside the REPL:
+> How do I configure logging?
+> /sources    # Show indexed collection info
+> /help       # Show available commands
+> /exit       # Exit the CLI
 ```
 
 ## 📁 Project Structure
@@ -194,14 +220,19 @@ DocVault/
 │   ├── ingestion/            # [M5] Document ingestion pipeline
 │   ├── llm/                  # [M6] Flexible LLM layer (providers)
 │   ├── rag/                  # [M7] Complete RAG pipeline
-│   ├── api/                  # [M7] FastAPI endpoints
+│   ├── api/                  # [M7+M8] FastAPI endpoints (10 endpoints)
 │   └── cli/                  # [M7] Interactive CLI
+├── frontend/                 # [M8] React + Vite + TypeScript (in progress)
 ├── tests/                    # All tests with pytest
 │   ├── unit/                 # Fast unit tests (no ML model loading)
 │   └── integration/          # Slow integration tests (real models + services)
 ├── data/
 │   ├── documents/            # Documents to ingest (PDFs, HTML, MD)
 │   └── qdrant_storage/       # Vector DB persistence (gitignored)
+├── docs/                     # Technical documentation
+│   ├── architecture.md       # System architecture overview
+│   ├── milestone-*.md        # Per-milestone implementation docs (M1-M8)
+│   └── internal_guide/       # Internal guides (Spanish, Java comparisons)
 ├── .env.example              # Environment variables template
 ├── .gitignore
 ├── requirements.txt          # Python dependencies
@@ -269,12 +300,12 @@ LLM_PROVIDER=ollama_local
 
 ## 🛠️ Technology Stack
 
-### Complete Stack (M1-M7)
+### Backend (M1-M7 + M8 Phase 1)
 - **Python 3.10+** — Modern type hints and async support
-- **Pydantic 2.x** — Type-safe configuration management
+- **Pydantic 2.x + pydantic-settings** — Type-safe configuration from .env
 - **pathlib** — Cross-platform path handling
 - **sentence-transformers** — Local multilingual embeddings (M2)
-- **Qdrant** — Vector database for similarity search (M3)
+- **qdrant-client** — Vector database for similarity search (M3)
 - **pypdf** — PDF text and metadata extraction (M4)
 - **BeautifulSoup4 + lxml** — HTML content extraction with boilerplate removal (M4)
 - **python-frontmatter** — Markdown YAML frontmatter parsing (M4)
@@ -282,8 +313,18 @@ LLM_PROVIDER=ollama_local
 - **ollama** — Local LLM inference via Ollama SDK (M6)
 - **openai** — OpenAI GPT models via official SDK (M6)
 - **anthropic** — Anthropic Claude models via official SDK (M6)
-- **FastAPI + uvicorn** — REST API with streaming support (M7)
+- **FastAPI + uvicorn** — REST API with 10 endpoints and streaming support (M7+M8)
+- **python-multipart** — Multipart form data for file uploads (M8)
 - **rich** — Terminal formatting for interactive CLI (M7)
+
+### Frontend (M8 — in progress)
+- **React 18 + TypeScript** — UI framework with type safety
+- **Vite** — Fast build tool with HMR and dev proxy
+- **Tailwind CSS** — Utility-first styling
+- **React Router v6** — Client-side page navigation
+- **react-markdown + remark-gfm** — Render LLM responses as markdown
+- **react-dropzone** — Drag & drop file upload
+- **lucide-react** — Icon library
 
 **Note:** We are NOT using LangChain. The project implements custom components for learning and full control.
 
@@ -336,6 +377,8 @@ pytest --cov=src
 
 - **[README.md](README.md)** — This file, project overview and quick start
 - **[AGENTS.md](AGENTS.md)** — Comprehensive guide for AI agents and developers
+- **[docs/architecture.md](docs/architecture.md)** — System architecture, data flow, and design decisions
+- **[docs/](docs/)** — Per-milestone implementation documentation (M1-M8)
 - **[.env.example](.env.example)** — Environment variables template with documentation
 
 ## 🤝 Contributing
@@ -361,6 +404,6 @@ Internal project - Enterprise use
 
 ---
 
-**Status:** All milestones completed ✅ — Project feature-complete (M1-M7)
+**Status:** M1-M7 completed. M8 (Web Frontend) in progress — Phase 1 (Backend API) done.
 
 **Last Updated:** 2026-02-12
