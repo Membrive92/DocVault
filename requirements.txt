@@ -64,6 +64,7 @@ pytest-cov==7.0.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 python-frontmatter==1.1.0
+python-multipart==0.0.22
 pywin32==311
 PyYAML==6.0.2
 qdrant-client==1.16.2
